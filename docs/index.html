@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unclump — Break through task paralysis.</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #faf9f6;
+            --surface: #ffffff;
+            --surface-hover: #f5f3ef;
+            --text: #1a1a1a;
+            --text-secondary: #6b6b6b;
+            --text-tertiary: #999;
+            --accent: #5b9a6b;
+            --accent-light: #e8f5e9;
+            --accent-dark: #3d704a;
+            --border: #e8e5df;
+            --border-light: #f0ede8;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.08);
+            --radius-sm: 10px;
+            --radius: 16px;
+            --radius-lg: 24px;
+            --max-w: 720px;
+            --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            width: 100%;
+            max-width: var(--max-w);
+            margin: 0 auto;
+            padding: 0 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Nav */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 0;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.02em;
+            text-decoration: none;
+        }
+
+        .nav-logo img {
+            height: 280px;
+            width: auto;
+        }
+
+        .nav-cta {
+            padding: 0.5rem 1.25rem;
+            border-radius: 100px;
+            background: var(--text);
+            color: white;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+
+        .nav-cta:hover { opacity: 0.85; }
+
+        /* Hero */
+        .hero {
+            text-align: center;
+            padding: 4rem 0 3rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.35rem 1rem;
+            background: var(--accent-light);
+            color: var(--accent-dark);
+            border-radius: 100px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero h1 {
+            font-size: 3.25rem;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            line-height: 1.1;
+            color: var(--text);
+            margin-bottom: 1rem;
+        }
+
+        .hero h1 .accent {
+            color: var(--accent);
+        }
+
+        .hero .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+            max-width: 480px;
+            margin: 0 auto 1.5rem;
+            line-height: 1.5;
+        }
+
+        .hero .description {
+            font-size: 1rem;
+            color: var(--text-tertiary);
+            max-width: 420px;
+            margin: 0 auto 2.5rem;
+            line-height: 1.7;
+        }
+
+        /* Email form */
+        .signup-form {
+            display: flex;
+            gap: 0.75rem;
+            max-width: 420px;
+            margin: 0 auto;
+        }
+
+        .signup-form input {
+            flex: 1;
+            padding: 0.95rem 1.25rem;
+            border-radius: 100px;
+            border: 1.5px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            font-size: 0.95rem;
+            font-family: var(--font);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .signup-form input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-light);
+        }
+
+        .signup-form input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .signup-form button {
+            padding: 0.95rem 1.75rem;
+            border-radius: 100px;
+            border: none;
+            background: var(--text);
+            color: white;
+            font-size: 0.95rem;
+            font-weight: 600;
+            font-family: var(--font);
+            cursor: pointer;
+            transition: background 0.2s, transform 0.15s;
+            white-space: nowrap;
+        }
+
+        .signup-form button:hover {
+            background: #333;
+            transform: translateY(-1px);
+        }
+
+        .signup-form button:active {
+            transform: translateY(0);
+        }
+
+        .privacy-note {
+            text-align: center;
+            color: var(--text-tertiary);
+            font-size: 0.8rem;
+            margin-top: 0.75rem;
+        }
+
+        /* How it works */
+        .section {
+            margin-top: 5rem;
+        }
+
+        .section-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent);
+            margin-bottom: 0.75rem;
+        }
+
+        .section-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            margin-bottom: 2rem;
+            color: var(--text);
+        }
+
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .step {
+            display: flex;
+            gap: 1.25rem;
+            align-items: flex-start;
+            padding: 1.5rem;
+            background: var(--surface);
+            border-radius: var(--radius);
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-sm);
+            transition: box-shadow 0.2s;
+        }
+
+        .step:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .step-num {
+            background: var(--accent-light);
+            color: var(--accent-dark);
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .step-content h3 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+            letter-spacing: -0.01em;
+        }
+
+        .step-content p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        /* Why block */
+        .why-block {
+            background: var(--surface);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .why-block p {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+            line-height: 1.75;
+        }
+
+        .why-block p:last-child {
+            margin-bottom: 0;
+        }
+
+        .why-block .highlight {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        /* Features grid */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .feature {
+            background: var(--surface);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            transition: box-shadow 0.2s;
+        }
+
+        .feature:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .feature-icon {
+            font-size: 1.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .feature h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+            letter-spacing: -0.01em;
+        }
+
+        .feature p {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        /* Bottom CTA */
+        .cta-section {
+            text-align: center;
+            margin-top: 5rem;
+            padding: 3rem 2rem;
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .cta-section h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            margin-bottom: 0.75rem;
+        }
+
+        .cta-section p {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 4rem;
+            padding: 2.5rem 0;
+            text-align: center;
+            border-top: 1px solid var(--border-light);
+        }
+
+        footer p {
+            color: var(--text-tertiary);
+            font-size: 0.85rem;
+            margin-bottom: 0.35rem;
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Confirmed state */
+        .confirmed {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+            background: var(--accent-light);
+            border-radius: var(--radius);
+            color: var(--accent-dark);
+            font-weight: 500;
+            font-size: 1rem;
+        }
+
+        /* Mobile */
+        @media (max-width: 520px) {
+            .hero { padding: 2.5rem 0 2rem; }
+            .hero h1 { font-size: 2.25rem; }
+            .hero .subtitle { font-size: 1.1rem; }
+            .signup-form { flex-direction: column; }
+            .signup-form input,
+            .signup-form button { width: 100%; text-align: center; }
+            .section { margin-top: 3.5rem; }
+            .features { grid-template-columns: 1fr; }
+            .cta-section { padding: 2rem 1.25rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Nav -->
+        <nav>
+            <a href="#" class="nav-logo">
+                <img src="logo.png" alt="Unclump">
+            </a>
+            <a href="#early-access" class="nav-cta">Get Early Access</a>
+        </nav>
+
+        <!-- Hero -->
+        <header class="hero">
+            <div class="badge">🧠 Built for ADHD brains</div>
+            <h1>Break through<br>task <span class="accent">paralysis.</span></h1>
+            <p class="subtitle">
+                You know what you need to do. Your brain just won't let you start.
+            </p>
+            <p class="description">
+                Unclump breaks your tasks into micro-steps so small your brain can't say no. 
+                Then we help you take the first one — gently, without guilt.
+            </p>
+
+            <div id="early-access">
+                <div class="signup-form" id="signup">
+                    <input type="email" id="email" placeholder="Your email address" required>
+                    <button onclick="subscribe()">Get Early Access</button>
+                </div>
+                <div class="confirmed" id="confirmed">
+                    ✨ You're on the list. We'll let you know when Unclump launches.
+                </div>
+                <p class="privacy-note">No spam. Just launch updates. Unsubscribe anytime.</p>
+            </div>
+        </header>
+
+        <!-- How it works -->
+        <section class="section">
+            <div class="section-label">How it works</div>
+            <h2 class="section-title">Three steps from clumped to clear.</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-num">1</div>
+                    <div class="step-content">
+                        <h3>Tell us what you're stuck on</h3>
+                        <p>Type it, say it, or WhatsApp it. Be messy — we don't judge. The app works when your brain is at zero.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-num">2</div>
+                    <div class="step-content">
+                        <h3>We unclump it into tiny, doable steps</h3>
+                        <p>We turn vague dread into concrete actions. Step 1 is always so trivial you can't fail to do it.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-num">3</div>
+                    <div class="step-content">
+                        <h3>You take one step. That's it.</h3>
+                        <p>Gentle accountability. Body doubling. No streaks that shame you. Just forward motion, one micro-step at a time.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Why -->
+        <section class="section">
+            <div class="section-label">Why Unclump exists</div>
+            <h2 class="section-title">Planning isn't the problem. <br>Starting is.</h2>
+            <div class="why-block">
+                <p>
+                    <span class="highlight">Most productivity apps were built by productivity nerds</span>
+                    for people who already have their life together. They give you lists,
+                    calendars, dashboards, analytics — and none of it helps when you're
+                    sitting on the couch, paralysed, unable to take the first step.
+                </p>
+                <p>
+                    <span class="highlight">The gap between knowing and doing is the execution chasm.</span>
+                    Unclump doesn't help you organise your life. It helps you take
+                    <em>one tiny action</em> right now. Then another. The bar for 
+                    "starting" is so low, you'll trip over it.
+                </p>
+                <p>
+                    Built for ADHD brains. Designed by someone who gets it.
+                    No gamification clutter. No analytics dashboards. Just one question: 
+                    <span class="highlight">what are you stuck on?</span>
+                </p>
+            </div>
+        </section>
+
+        <!-- Features -->
+        <section class="section">
+            <div class="section-label">What's inside</div>
+            <h2 class="section-title">Everything you need. Nothing you don't.</h2>
+            <div class="features">
+                <div class="feature">
+                    <div class="feature-icon">🧩</div>
+                    <h3>Smart Micro-Steps</h3>
+                    <p>Tasks broken into actions so small they bypass paralysis entirely.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🎙️</div>
+                    <h3>Voice-First Input</h3>
+                    <p>Just speak your task. Typing optional. Works at zero executive function.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">👥</div>
+                    <h3>Body Doubling</h3>
+                    <p>Virtual coworking. Work alongside others. Cameras off, presence on.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🤝</div>
+                    <h3>Gentle Accountability</h3>
+                    <p>Share a task with a friend. No nagging — just a quiet nudge if you haven't started.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🧠</div>
+                    <h3>Pattern Recognition</h3>
+                    <p>Learns when you thrive and when you crash. Adapts around your actual brain.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">💬</div>
+                    <h3>WhatsApp Bot</h3>
+                    <p>Send a voice note. Get back a breakdown. No app required in your lowest moments.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Bottom CTA -->
+        <section class="cta-section">
+            <h2>Stop planning. Start doing.</h2>
+            <p>Launching soon. Get on the list.</p>
+            <div class="signup-form" id="signup-bottom" style="margin-top:0;">
+                <input type="email" id="email-bottom" placeholder="Your email address" required>
+                <button onclick="subscribeBottom()">Get Early Access</button>
+            </div>
+            <div class="confirmed" id="confirmed-bottom" style="margin-top:1rem;">
+                ✨ You're on the list. We'll let you know when Unclump launches.
+            </div>
+        </section>
+
+        <footer>
+            <p>Unclump &copy; 2026</p>
+            <p style="margin-top:0.35rem;">Built for brains that need a nudge. <a href="mailto:hello@unclump.app">hello@unclump.app</a></p>
+        </footer>
+    </div>
+
+    <script>
+        function saveEmail(id, confirmId) {
+            const email = document.getElementById(id).value.trim();
+            if (!email || !email.includes('@')) {
+                alert('Please enter a valid email address.');
+                return;
+            }
+            const emails = JSON.parse(localStorage.getItem('unclump_waitlist') || '[]');
+            if (!emails.includes(email)) {
+                emails.push(email);
+                localStorage.setItem('unclump_waitlist', JSON.stringify(emails));
+            }
+            document.getElementById(confirmId).style.display = 'block';
+            console.log('Waitlist signup:', email, '(Total:', emails.length, ')');
+        }
+
+        function subscribe() { saveEmail('email', 'confirmed'); }
+        function subscribeBottom() { saveEmail('email-bottom', 'confirmed-bottom'); }
+
+        document.getElementById('email').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') subscribe();
+        });
+        document.getElementById('email-bottom').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') subscribeBottom();
+        });
+    </script>
+</body>
+</html>
