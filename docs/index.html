@@ -558,11 +558,22 @@
     </div>
 
     <script>
-        function saveEmail(id, confirmId) {
+        const API_URL = 'https://unclump-api.onrender.com';
+
+        async function saveEmail(id, confirmId) {
             const email = document.getElementById(id).value.trim();
             if (!email || !email.includes('@')) {
                 alert('Please enter a valid email address.');
                 return;
+            }
+            try {
+                await fetch(API_URL + '/api/waitlist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email })
+                });
+            } catch (e) {
+                console.log('Backend not yet live, storing locally:', e);
             }
             const emails = JSON.parse(localStorage.getItem('unclump_waitlist') || '[]');
             if (!emails.includes(email)) {
@@ -570,7 +581,7 @@
                 localStorage.setItem('unclump_waitlist', JSON.stringify(emails));
             }
             document.getElementById(confirmId).style.display = 'block';
-            console.log('Waitlist signup:', email, '(Total:', emails.length, ')');
+            console.log('Waitlist signup:', email);
         }
 
         function subscribe() { saveEmail('email', 'confirmed'); }

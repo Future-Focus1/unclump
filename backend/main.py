@@ -74,3 +74,21 @@ async def root():
         "docs": "/docs",
         "endpoint": "POST /api/breakdown",
     }
+
+
+# ── Simple email waitlist (no DB needed for MVP) ──
+
+waitlist_emails: list[str] = []
+
+
+class WaitlistRequest(BaseModel):
+    email: str = Field(..., min_length=5, max_length=200)
+
+
+@app.post("/api/waitlist")
+async def waitlist(request: WaitlistRequest):
+    email = request.email.strip().lower()
+    if email not in waitlist_emails:
+        waitlist_emails.append(email)
+        print(f"[WAITLIST] New signup: {email} (total: {len(waitlist_emails)})")
+    return {"status": "ok", "message": "You're on the list!"}
