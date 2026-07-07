@@ -2,61 +2,44 @@
 
 **Break through task paralysis.**
 
-Unclump is an ADHD-friendly productivity app that solves the "execution chasm" — the gap between knowing what to do and actually doing it.
+Unclump is an ADHD-friendly app that solves the "execution chasm" — the gap between knowing what to do and actually doing it.
 
-## How It Works
+## Live Endpoints
 
-1. **Tell us what you're stuck on** — type it, say it, or WhatsApp it
-2. **AI unclumps it into micro-steps** — step 1 is always so small you can't fail
-3. **You start** — gentle accountability, body doubling, no guilt
+| Service | URL |
+|---------|-----|
+| 🌐 Landing page | https://3bbfef3c3aac510e-94-13-62-56.serveousercontent.com |
+| 🔧 API (health) | https://39a564e2a78134da-94-13-62-56.serveousercontent.com/health |
+| 🔧 API (docs) | https://39a564e2a78134da-94-13-62-56.serveousercontent.com/docs |
+
+## Quick API Test
+
+```bash
+curl -X POST https://39a564e2a78134da-94-13-62-56.serveousercontent.com/api/breakdown \
+  -H "Content-Type: application/json" \
+  -d '{"task":"reply to emails"}'
+```
 
 ## Architecture
 
 ```
 backend/
-├── engine.py       # AI task breakdown engine (OpenAI + fallback)
+├── engine.py       # Task breakdown engine (OpenAI + fallback)
 ├── main.py         # FastAPI server
-├── test_engine.py  # Engine unit tests (21 tests)
-└── test_api.py     # API integration tests (7 tests)
+├── test_engine.py  # 21 unit tests
+└── test_api.py     # 7 integration tests
 
 landing/
 ├── index.html      # Landing page
-└── logo.jpg        # Unclump logo
-```
-
-## Quick Start
-
-```bash
-cd backend
-pip install -r requirements.txt
-uvicorn main:app --reload
-# → http://localhost:8000/docs
-```
-
-## API
-
-```
-POST /api/breakdown
-{
-  "task": "clean my room"
-}
-→ {
-  "original_task": "clean my room",
-  "entry_hook": "Let's go!",
-  "total_estimated_minutes": 2.5,
-  "micro_steps": [
-    {"step": 1, "description": "Pick up one item", "estimated_seconds": 30, "is_entry_point": true},
-    ...
-  ]
-}
+├── logo.png        # Colour logo (light backgrounds)
+└── logo_white.png  # White logo (dark backgrounds)
 ```
 
 ## Status
 
-- [x] AI task breakdown engine (with tests)
-- [x] FastAPI server with fallback
-- [x] Landing page + logo
-- [ ] Reddit validation
+- [x] Task breakdown engine (28 tests passing)
+- [x] FastAPI server live (public URL)
+- [x] Landing page live (public URL)
 - [ ] Flutter mobile app
 - [ ] WhatsApp bot
 - [ ] Body doubling
