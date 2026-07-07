@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Unclump — Break through</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Unclump</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,12 +13,19 @@
             --surface: #ffffff;
             --text: #1a1a1a;
             --text-secondary: #6b6b6b;
+            --text-tertiary: #999;
             --accent: #5b9a6b;
             --accent-light: #e8f5e9;
             --accent-dark: #3d704a;
             --border: #e8e5df;
             --border-light: #f0ede8;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.08);
+            --radius: 16px;
+            --radius-lg: 24px;
             --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -32,343 +39,664 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            overflow-x: hidden;
         }
 
-        .container {
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── App Shell ── */
+        .app {
             width: 100%;
             max-width: 480px;
-            padding: 2rem 1.25rem;
-            flex: 1;
+            min-height: 100dvh;
             display: flex;
             flex-direction: column;
+            position: relative;
+            z-index: 1;
+            padding: 0 1.25rem;
+            padding-bottom: calc(1.5rem + var(--safe-bottom));
         }
 
-        /* Screens */
-        .screen { display: none; flex: 1; flex-direction: column; }
-        .screen.active { display: flex; }
-
-        /* Logo */
+        /* ── Header ── */
         .app-header {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 2.5rem;
+            justify-content: space-between;
+            padding: 1.25rem 0 0;
+            flex-shrink: 0;
         }
-        .app-header img { height: 48px; width: auto; }
+        .app-header img { height: 44px; width: auto; }
+        .app-header .header-actions { display: flex; gap: 0.5rem; }
+        .icon-btn {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; cursor: pointer;
+            transition: background 0.15s;
+        }
+        .icon-btn:hover { background: var(--accent-light); }
+        .icon-btn.active { background: var(--accent-light); border-color: var(--accent); }
 
-        /* Input screen */
-        .input-screen { justify-content: center; }
+        /* ── Screens ── */
+        .screen {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+            animation: fadeIn 0.25s ease;
+        }
+        .screen.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ── Input Screen ── */
+        .input-screen {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem 0;
+        }
         .input-screen h1 {
-            font-size: 1.75rem;
+            font-size: 1.65rem;
             font-weight: 700;
             letter-spacing: -0.03em;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.4rem;
         }
         .input-screen .subtitle {
             color: var(--text-secondary);
             font-size: 0.95rem;
             margin-bottom: 2rem;
+            line-height: 1.5;
+        }
+
+        .input-card {
+            width: 100%;
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-md);
+            padding: 1.5rem;
+            text-align: left;
         }
 
         .task-input {
             width: 100%;
             padding: 1rem 1.25rem;
-            border-radius: 16px;
+            border-radius: 14px;
             border: 1.5px solid var(--border);
-            background: var(--surface);
+            background: var(--bg);
             font-size: 1.05rem;
             font-family: var(--font);
             color: var(--text);
             outline: none;
-            margin-bottom: 1rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            transition: border-color 0.2s, box-shadow 0.2s;
+            margin-bottom: 0.75rem;
         }
         .task-input:focus {
             border-color: var(--accent);
             box-shadow: 0 0 0 3px var(--accent-light);
         }
-        .task-input::placeholder { color: #bbb; }
+        .task-input::placeholder { color: #c0bdb5; }
+
+        .input-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
 
         .btn {
-            width: 100%;
-            padding: 1rem;
-            border-radius: 16px;
+            padding: 0.85rem 1.25rem;
+            border-radius: 14px;
             border: none;
-            font-size: 1.05rem;
+            font-size: 0.95rem;
             font-weight: 600;
             font-family: var(--font);
             cursor: pointer;
-            transition: opacity 0.2s, transform 0.1s;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
         }
-        .btn:active { transform: scale(0.98); }
-        .btn-primary { background: var(--text); color: white; }
-        .btn-primary:hover { opacity: 0.9; }
-        .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
-        .btn-outline {
+        .btn:active { transform: scale(0.97); }
+        .btn-primary {
+            flex: 1;
+            background: var(--text);
+            color: white;
+        }
+        .btn-primary:hover { background: #333; }
+        .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+        .btn-icon-only {
+            width: 48px; height: 48px;
+            padding: 0;
+            border-radius: 14px;
             background: var(--surface);
-            color: var(--text);
             border: 1.5px solid var(--border);
+            font-size: 1.2rem;
+            flex-shrink: 0;
         }
-
-        .btn-voice {
-            margin-top: 0.5rem;
-            font-weight: 500;
-            font-size: 0.9rem;
-        }
-
-        /* Steps screen */
-        .steps-screen { padding-top: 1rem; }
-
-        .step-card {
-            background: var(--surface);
-            border-radius: 20px;
-            padding: 2rem 1.5rem;
-            text-align: center;
-            border: 1px solid var(--border-light);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-            margin-bottom: 1.5rem;
-        }
-
-        .step-badge {
-            display: inline-block;
-            padding: 0.25rem 0.85rem;
+        .btn-icon-only:hover { background: var(--accent-light); border-color: var(--accent); }
+        .btn-icon-only.listening {
             background: var(--accent-light);
-            color: var(--accent-dark);
-            border-radius: 100px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
+            border-color: var(--accent);
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(91,154,107,0.3); }
+            50% { box-shadow: 0 0 0 8px rgba(91,154,107,0); }
         }
 
-        .step-description {
-            font-size: 1.35rem;
-            font-weight: 600;
-            letter-spacing: -0.02em;
-            margin-bottom: 2rem;
-            line-height: 1.4;
+        .recent-tasks {
+            margin-top: 1.5rem;
+            width: 100%;
         }
-
-        /* Timer ring */
-        .timer-ring {
-            position: relative;
-            width: 120px;
-            height: 120px;
-            margin: 0 auto 1.5rem;
-        }
-        .timer-ring svg { transform: rotate(-90deg); }
-        .timer-ring .bg { fill: none; stroke: var(--border-light); stroke-width: 6; }
-        .timer-ring .progress { fill: none; stroke: var(--accent); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 0.3s linear; }
-        .timer-text {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
+        .recent-tasks .label {
+            font-size: 0.75rem;
             font-weight: 700;
-            color: var(--text);
-        }
-
-        .step-actions {
-            display: flex;
-            gap: 0.75rem;
-            flex-direction: column;
-        }
-
-        .steps-progress {
-            display: flex;
-            gap: 6px;
-            justify-content: center;
-            margin-bottom: 1.5rem;
-        }
-        .steps-progress .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--border);
-            transition: background 0.3s;
-        }
-        .steps-progress .dot.done { background: var(--accent); }
-        .steps-progress .dot.current { background: var(--text); }
-
-        /* Done screen */
-        .done-screen {
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-        }
-        .done-icon {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-        }
-        .done-screen h2 {
-            font-size: 1.75rem;
-            font-weight: 700;
-            letter-spacing: -0.03em;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-tertiary);
             margin-bottom: 0.5rem;
         }
-        .done-screen p {
+        .recent-chip {
+            display: inline-block;
+            padding: 0.45rem 0.9rem;
+            border-radius: 100px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            font-size: 0.82rem;
             color: var(--text-secondary);
-            margin-bottom: 2rem;
+            cursor: pointer;
+            margin: 0 0.35rem 0.35rem 0;
+            transition: all 0.15s;
         }
+        .recent-chip:hover { border-color: var(--accent); color: var(--text); }
 
-        /* Loading */
+        /* ── Loading Screen ── */
         .loading-screen {
             justify-content: center;
             align-items: center;
             text-align: center;
         }
-        .spinner {
-            width: 48px;
-            height: 48px;
-            border: 3px solid var(--border);
-            border-top-color: var(--accent);
+        .loading-dots { display: flex; gap: 6px; margin-bottom: 1.5rem; }
+        .loading-dots span {
+            width: 10px; height: 10px;
             border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-bottom: 1.5rem;
+            background: var(--accent);
+            animation: bounce 0.6s infinite alternate;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-dots span:nth-child(2) { animation-delay: 0.15s; }
+        .loading-dots span:nth-child(3) { animation-delay: 0.3s; }
+        @keyframes bounce { to { transform: translateY(-8px); opacity: 0.5; } }
         .loading-screen p { color: var(--text-secondary); }
 
-        /* Error */
+        /* ── Steps Screen ── */
+        .steps-screen { padding-top: 1.5rem; }
+
+        .step-progress-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            justify-content: center;
+            margin-bottom: 1.75rem;
+        }
+        .step-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--border);
+            transition: all 0.3s;
+        }
+        .step-dot.done { background: var(--accent); transform: scale(1.2); }
+        .step-dot.current { background: var(--text); transform: scale(1.4); }
+
+        .step-card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-md);
+            padding: 2rem 1.5rem;
+            text-align: center;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .step-card .step-number {
+            display: inline-block;
+            padding: 0.25rem 0.85rem;
+            background: var(--accent-light);
+            color: var(--accent-dark);
+            border-radius: 100px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+            align-self: center;
+        }
+
+        .step-card .step-text {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.35;
+            margin-bottom: 2rem;
+            color: var(--text);
+        }
+
+        /* Timer */
+        .timer-container {
+            position: relative;
+            width: 130px;
+            height: 130px;
+            margin: 0 auto 1.75rem;
+        }
+        .timer-ring { position: absolute; inset: 0; }
+        .timer-ring svg { transform: rotate(-90deg); width: 100%; height: 100%; }
+        .timer-bg { fill: none; stroke: var(--border-light); stroke-width: 5; }
+        .timer-fill { fill: none; stroke: var(--accent); stroke-width: 5; stroke-linecap: round; transition: stroke-dashoffset 0.9s linear; }
+        .timer-center {
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column;
+        }
+        .timer-time { font-size: 1.6rem; font-weight: 700; color: var(--text); line-height: 1; }
+        .timer-label { font-size: 0.7rem; color: var(--text-tertiary); font-weight: 500; margin-top: 2px; }
+
+        .step-actions {
+            display: flex; gap: 0.65rem; margin-top: auto;
+        }
+        .btn-secondary {
+            flex: 1;
+            background: var(--surface);
+            color: var(--text);
+            border: 1.5px solid var(--border);
+            border-radius: 14px;
+        }
+        .btn-secondary:hover { border-color: var(--accent); background: var(--accent-light); }
+
+        .skip-hint {
+            text-align: center; font-size: 0.78rem;
+            color: var(--text-tertiary); margin-top: 0.65rem;
+        }
+
+        /* ── Done Screen ── */
+        .done-screen {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem 0;
+        }
+        .done-icon {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+        .done-screen h2 {
+            font-size: 1.65rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            margin-bottom: 0.4rem;
+        }
+        .done-screen p {
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+        .done-stats {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            margin: 1.25rem 0 1.75rem;
+        }
+        .done-stat {
+            text-align: center;
+        }
+        .done-stat .num {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-dark);
+        }
+        .done-stat .lbl {
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+            margin-top: 2px;
+        }
+
+        /* ── Body Doubling Screen ── */
+        .doubling-screen {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem 0;
+        }
+        .doubling-card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-md);
+            padding: 2rem 1.5rem;
+            width: 100%;
+        }
+        .doubling-card .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        .doubling-card h2 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+        }
+        .doubling-card p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+        .doubling-timer {
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: var(--accent-dark);
+            margin-bottom: 1.5rem;
+            font-variant-numeric: tabular-nums;
+        }
+        .doubling-presence {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+        .presence-dot {
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: breathe 2s infinite;
+        }
+        .presence-dot:nth-child(2) { animation-delay: 0.5s; }
+        .presence-dot:nth-child(3) { animation-delay: 1s; }
+        @keyframes breathe {
+            0%, 100% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* ── Share / Accountability ── */
+        .share-bar {
+            background: var(--surface);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius);
+            padding: 0.85rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 1rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .share-bar .share-text {
+            flex: 1;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+        .share-bar .btn-sm {
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            font-size: 0.8rem;
+            font-weight: 600;
+            font-family: var(--font);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s;
+        }
+        .share-bar .btn-sm:hover { border-color: var(--accent); background: var(--accent-light); }
+        .share-bar .btn-sm.copied { background: var(--accent-light); border-color: var(--accent); color: var(--accent-dark); }
+
+        /* ── Error ── */
+        .toast {
+            position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+            background: #1a1a1a; color: white;
+            padding: 0.75rem 1.25rem; border-radius: 100px;
+            font-size: 0.85rem; font-weight: 500;
+            z-index: 100; animation: toastIn 0.3s ease;
+            max-width: 90vw; text-align: center;
+        }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
         .error-banner {
             background: #fef2f2;
             color: #991b1b;
-            padding: 0.75rem 1rem;
+            padding: 0.65rem 1rem;
             border-radius: 12px;
-            font-size: 0.85rem;
-            margin-bottom: 1rem;
+            font-size: 0.82rem;
+            margin-top: 0.75rem;
             text-align: center;
         }
-
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="app">
         <!-- Header -->
-        <div class="app-header">
+        <header class="app-header">
             <img src="logo.png" alt="Unclump">
-        </div>
+            <div class="header-actions">
+                <button class="icon-btn" id="doublingBtn" onclick="showDoubling()" title="Body doubling">
+                    👥
+                </button>
+            </div>
+        </header>
 
-        <!-- Input Screen -->
+        <!-- ── INPUT SCREEN ── -->
         <div class="screen active" id="inputScreen">
             <div class="input-screen">
                 <h1>What are you stuck on?</h1>
-                <p class="subtitle">Be messy. We don't judge.</p>
-                <input type="text" class="task-input" id="taskInput"
-                       placeholder="e.g. clean my flat, reply to emails, start my taxes..."
-                       autocomplete="off" autofocus>
-                <button class="btn btn-primary" onclick="unclump()" id="unclumpBtn">
-                    Unclump it
-                </button>
-                <button class="btn btn-outline btn-voice" onclick="voiceInput()">
-                    🎙️ Or say it out loud
-                </button>
-                <div class="error-banner hidden" id="inputError"></div>
+                <p class="subtitle">Be as messy as you need. We'll sort it out.</p>
+
+                <div class="input-card">
+                    <input type="text" class="task-input" id="taskInput"
+                           placeholder="e.g. clean my flat, reply to that email, start my taxes..."
+                           autocomplete="off" autofocus maxlength="300">
+                    <div class="input-actions">
+                        <button class="btn btn-primary" onclick="unclump()" id="unclumpBtn">
+                            Unclump it
+                        </button>
+                        <button class="btn btn-icon-only" onclick="voiceInput()" id="voiceBtn" title="Use voice">
+                            🎙️
+                        </button>
+                    </div>
+                    <div class="error-banner hidden" id="inputError"></div>
+                </div>
+
+                <div class="recent-tasks hidden" id="recentTasks">
+                    <div class="label">Recent</div>
+                    <div id="recentChips"></div>
+                </div>
             </div>
         </div>
 
-        <!-- Loading Screen -->
+        <!-- ── LOADING SCREEN ── -->
         <div class="screen" id="loadingScreen">
             <div class="loading-screen">
-                <div class="spinner"></div>
-                <p>Breaking this down...</p>
+                <div class="loading-dots">
+                    <span></span><span></span><span></span>
+                </div>
+                <p>Breaking this down into tiny steps...</p>
             </div>
         </div>
 
-        <!-- Steps Screen -->
+        <!-- ── STEPS SCREEN ── -->
         <div class="screen" id="stepsScreen">
             <div class="steps-screen">
-                <div class="steps-progress" id="stepDots"></div>
+                <div class="step-progress-row" id="stepDots"></div>
                 <div class="step-card">
-                    <div class="step-badge" id="stepBadge">Step 1 of 5</div>
-                    <div class="step-description" id="stepDescription"></div>
-                    <div class="timer-ring" id="timerRing">
-                        <svg width="120" height="120" viewBox="0 0 120 120">
-                            <circle class="bg" cx="60" cy="60" r="54"/>
-                            <circle class="progress" id="timerCircle" cx="60" cy="60" r="54"
-                                    stroke-dasharray="339.292" stroke-dashoffset="0"/>
-                        </svg>
-                        <div class="timer-text" id="timerText">0:30</div>
+                    <div class="step-number" id="stepBadge">Step 1 of 5</div>
+                    <div class="step-text" id="stepDescription"></div>
+                    <div class="timer-container" id="timerContainer">
+                        <div class="timer-ring">
+                            <svg viewBox="0 0 130 130">
+                                <circle class="timer-bg" cx="65" cy="65" r="60"/>
+                                <circle class="timer-fill" id="timerFill" cx="65" cy="65" r="60"
+                                        stroke-dasharray="376.991" stroke-dashoffset="0"/>
+                            </svg>
+                        </div>
+                        <div class="timer-center">
+                            <div class="timer-time" id="timerTime">0:30</div>
+                            <div class="timer-label">estimated</div>
+                        </div>
                     </div>
                     <div class="step-actions">
                         <button class="btn btn-primary" id="stepDoneBtn" onclick="stepDone()">
-                            Done — next step
+                            Done — next →
                         </button>
-                        <button class="btn btn-outline hidden" id="skipBtn" onclick="skipStep()">
-                            Skip this one
+                        <button class="btn btn-secondary hidden" id="skipBtn" onclick="skipStep()">
+                            Skip
                         </button>
                     </div>
                 </div>
-                <button class="btn btn-outline" onclick="goBack()" style="margin-top:0.5rem;">
-                    ← Try a different task
-                </button>
+                <div class="skip-hint hidden" id="skipHint">
+                    Timer's up — no pressure. Skip if you need to.
+                </div>
+                <div class="share-bar" id="shareBar">
+                    <div class="share-text" id="shareText">
+                        Working on a task. Want to share your progress?
+                    </div>
+                    <button class="btn-sm" onclick="shareTask()" id="shareBtn">Share</button>
+                </div>
+                <div style="text-align:center;margin-top:0.75rem;">
+                    <button class="btn btn-secondary" onclick="goBack()" style="border:none;background:transparent;font-size:0.82rem;color:var(--text-tertiary);">
+                        ← Try a different task
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- Done Screen -->
+        <!-- ── DONE SCREEN ── -->
         <div class="screen" id="doneScreen">
             <div class="done-screen">
                 <div class="done-icon">✨</div>
                 <h2>You did it.</h2>
-                <p id="doneMessage">One step at a time. That's how it works.</p>
-                <button class="btn btn-primary" onclick="resetApp()" style="margin-top:1rem;">
+                <p>One step at a time. That's all it takes.</p>
+                <div class="done-stats">
+                    <div class="done-stat">
+                        <div class="num" id="doneSteps">0</div>
+                        <div class="lbl">steps completed</div>
+                    </div>
+                    <div class="done-stat">
+                        <div class="num" id="doneTime">0m</div>
+                        <div class="lbl">total time</div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="resetApp()" style="margin-top:0.5rem;">
                     Unclump something else
+                </button>
+                <button class="btn btn-secondary" onclick="showDoubling()" style="margin-top:0.5rem;">
+                    👥 Start a coworking session
+                </button>
+            </div>
+        </div>
+
+        <!-- ── BODY DOUBLING SCREEN ── -->
+        <div class="screen" id="doublingScreen">
+            <div class="doubling-screen">
+                <div class="doubling-card">
+                    <div class="icon">👥</div>
+                    <h2>Work Together</h2>
+                    <p>You're not alone. Others are working alongside you right now — quietly, cameras off, just presence.</p>
+                    <div class="doubling-timer" id="doublingTimer">25:00</div>
+                    <div class="doubling-presence">
+                        <div class="presence-dot"></div>
+                        <div class="presence-dot"></div>
+                        <div class="presence-dot"></div>
+                    </div>
+                    <p style="color:var(--text-tertiary);font-size:0.8rem;">3 people working nearby</p>
+                    <button class="btn btn-primary" id="doublingStartBtn" onclick="startDoubling()">
+                        Start 25 min session
+                    </button>
+                    <button class="btn btn-secondary" id="doublingStopBtn" onclick="stopDoubling()" style="margin-top:0.5rem;">
+                        End session
+                    </button>
+                </div>
+                <button class="btn btn-secondary" onclick="closeDoubling()" style="margin-top:1rem;border:none;background:transparent;color:var(--text-tertiary);font-size:0.82rem;">
+                    ← Back to app
                 </button>
             </div>
         </div>
     </div>
 
     <script>
+        // ── State ──
         const API_URL = 'https://unclump-api.onrender.com';
-        let steps = [];
-        let currentStep = 0;
-        let timerInterval = null;
-        let secondsLeft = 0;
-        let totalSeconds = 0;
+        let steps = [], currentStep = 0, timerInterval = null;
+        let secondsLeft = 0, totalSeconds = 0, startedAt = null;
+        let doublingInterval = null, doublingSeconds = 25 * 60;
+        let taskHistory = JSON.parse(localStorage.getItem('unclump_history') || '[]');
 
-        // ── Screen management ──
-        function show(screenId) {
+        // ── Screens ──
+        function show(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(screenId).classList.add('active');
+            document.getElementById(id).classList.add('active');
         }
 
-        // ── Voice input ──
+        // ── Toast ──
+        function toast(msg) {
+            const t = document.createElement('div');
+            t.className = 'toast'; t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; }, 2000);
+            setTimeout(() => t.remove(), 2500);
+        }
+
+        // ── Recent tasks ──
+        function updateRecent() {
+            const container = document.getElementById('recentTasks');
+            const chips = document.getElementById('recentChips');
+            if (taskHistory.length === 0) { container.classList.add('hidden'); return; }
+            container.classList.remove('hidden');
+            chips.innerHTML = taskHistory.slice(0, 5).map(t =>
+                `<span class="recent-chip" onclick="document.getElementById('taskInput').value='${t.replace(/'/g,"\\'")}';unclump();">${t}</span>`
+            ).join('');
+        }
+
+        // ── Voice ──
         function voiceInput() {
-            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                document.getElementById('inputError').textContent = 'Voice input not supported in this browser. Try Chrome.';
-                document.getElementById('inputError').classList.remove('hidden');
-                return;
-            }
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            const recognition = new SpeechRecognition();
-            recognition.lang = 'en-US';
-            recognition.interimResults = false;
-            const btn = document.querySelector('.btn-voice');
-            btn.textContent = '🎙️ Listening...';
-            recognition.start();
-            recognition.onresult = (event) => {
-                document.getElementById('taskInput').value = event.results[0][0].transcript;
-                btn.textContent = '🎙️ Or say it out loud';
+            if (!SpeechRecognition) { toast('Voice not supported in this browser. Try Chrome.'); return; }
+            const rec = new SpeechRecognition();
+            rec.lang = 'en-US'; rec.interimResults = false;
+            const btn = document.getElementById('voiceBtn');
+            btn.classList.add('listening');
+            rec.start();
+            rec.onresult = e => {
+                document.getElementById('taskInput').value = e.results[0][0].transcript;
+                btn.classList.remove('listening');
                 unclump();
             };
-            recognition.onerror = () => {
-                btn.textContent = '🎙️ Or say it out loud';
-                document.getElementById('inputError').textContent = 'Couldn\'t hear you. Try typing instead.';
-                document.getElementById('inputError').classList.remove('hidden');
-            };
+            rec.onerror = () => { btn.classList.remove('listening'); toast('Didn\'t catch that. Try typing.'); };
+            rec.onend = () => btn.classList.remove('listening');
         }
 
-        // ── Unclump the task ──
+        // ── Unclump ──
         async function unclump() {
             const task = document.getElementById('taskInput').value.trim();
-            if (!task) {
-                document.getElementById('inputError').textContent = 'Tell us what you\'re stuck on first.';
-                document.getElementById('inputError').classList.remove('hidden');
-                return;
+            if (!task) return showError('Tell us what you\'re stuck on first.');
+            hideError();
+
+            if (!taskHistory.includes(task)) {
+                taskHistory.unshift(task);
+                if (taskHistory.length > 10) taskHistory.pop();
+                localStorage.setItem('unclump_history', JSON.stringify(taskHistory));
+                updateRecent();
             }
-            document.getElementById('inputError').classList.add('hidden');
+
             document.getElementById('unclumpBtn').disabled = true;
             show('loadingScreen');
 
@@ -378,49 +706,57 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ task })
                 });
-                if (!res.ok) throw new Error('API error');
+                if (!res.ok) throw new Error('Server error');
                 const data = await res.json();
+                if (!data.micro_steps || data.micro_steps.length === 0) throw new Error('No steps returned');
                 steps = data.micro_steps;
                 currentStep = 0;
+                startedAt = Date.now();
                 showStep();
             } catch (e) {
-                document.getElementById('inputError').textContent = 'Something went wrong. Try again in a moment.';
-                document.getElementById('inputError').classList.remove('hidden');
+                showError('Something went wrong. The server might still be waking up — try again in a moment.');
                 show('inputScreen');
             } finally {
                 document.getElementById('unclumpBtn').disabled = false;
             }
         }
 
-        // ── Step display ──
+        function showError(msg) {
+            const el = document.getElementById('inputError');
+            el.textContent = msg; el.classList.remove('hidden');
+        }
+        function hideError() {
+            document.getElementById('inputError').classList.add('hidden');
+        }
+
+        // ── Steps ──
         function showStep() {
-            if (currentStep >= steps.length) {
-                clearInterval(timerInterval);
-                show('doneScreen');
-                return;
-            }
+            if (currentStep >= steps.length) return showDone();
             show('stepsScreen');
 
             const step = steps[currentStep];
             document.getElementById('stepBadge').textContent = `Step ${step.step} of ${steps.length}`;
             document.getElementById('stepDescription').textContent = step.description;
-            document.getElementById('stepDoneBtn').textContent =
-                currentStep === steps.length - 1 ? 'Done — finish!' : 'Done — next step';
+            const isLast = currentStep === steps.length - 1;
+            document.getElementById('stepDoneBtn').textContent = isLast ? 'Done — finish! ✨' : 'Done — next →';
+            document.getElementById('skipBtn').classList.add('hidden');
+            document.getElementById('skipHint').classList.add('hidden');
 
             // Progress dots
-            const dots = document.getElementById('stepDots');
-            dots.innerHTML = steps.map((_, i) => {
-                let cls = '';
-                if (i < currentStep) cls = 'done';
-                else if (i === currentStep) cls = 'current';
-                return `<div class="dot ${cls}"></div>`;
+            document.getElementById('stepDots').innerHTML = steps.map((_, i) => {
+                let cls = i < currentStep ? 'done' : i === currentStep ? 'current' : '';
+                return `<div class="step-dot ${cls}"></div>`;
             }).join('');
 
             // Timer
-            secondsLeft = step.estimated_seconds;
-            totalSeconds = step.estimated_seconds;
+            secondsLeft = Math.max(10, Math.min(120, step.estimated_seconds));
+            totalSeconds = secondsLeft;
             updateTimerDisplay();
             startTimer();
+
+            // Share bar
+            document.getElementById('shareText').textContent =
+                `Working on: "${step.description}" — Step ${step.step} of ${steps.length}`;
         }
 
         function startTimer() {
@@ -430,56 +766,122 @@
                 updateTimerDisplay();
                 if (secondsLeft <= 0) {
                     clearInterval(timerInterval);
-                    // Auto-advance after a beat
-                    setTimeout(() => {
-                        document.getElementById('skipBtn').classList.remove('hidden');
-                    }, 500);
+                    document.getElementById('skipBtn').classList.remove('hidden');
+                    document.getElementById('skipHint').classList.remove('hidden');
                 }
             }, 1000);
         }
 
         function updateTimerDisplay() {
-            const mins = Math.floor(Math.max(0, secondsLeft) / 60);
-            const secs = Math.max(0, secondsLeft) % 60;
-            document.getElementById('timerText').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+            const s = Math.max(0, secondsLeft);
+            const m = Math.floor(s / 60);
+            const sec = s % 60;
+            document.getElementById('timerTime').textContent = `${m}:${sec.toString().padStart(2,'0')}`;
 
-            const progress = totalSeconds > 0 ? (totalSeconds - Math.max(0, secondsLeft)) / totalSeconds : 1;
-            const circumference = 339.292;
-            const offset = circumference * (1 - progress);
-            document.getElementById('timerCircle').style.strokeDashoffset = offset;
+            const progress = totalSeconds > 0 ? (totalSeconds - s) / totalSeconds : 1;
+            const circumference = 376.991;
+            document.getElementById('timerFill').style.strokeDashoffset = circumference * (1 - Math.min(1, progress));
+
+            // Color shift: green → amber when running out
+            const hue = s < 10 ? 30 : 130;
+            document.getElementById('timerFill').style.stroke = s < 10 ? '#d4a853' : 'var(--accent)';
         }
 
         function stepDone() {
             clearInterval(timerInterval);
             document.getElementById('skipBtn').classList.add('hidden');
+            document.getElementById('skipHint').classList.add('hidden');
             currentStep++;
             showStep();
         }
 
         function skipStep() {
             document.getElementById('skipBtn').classList.add('hidden');
-            stepDone();
+            document.getElementById('skipHint').classList.add('hidden');
+            currentStep++;
+            showStep();
         }
 
         function goBack() {
             clearInterval(timerInterval);
             show('inputScreen');
-            document.getElementById('taskInput').value = '';
             document.getElementById('taskInput').focus();
+        }
+
+        // ── Done ──
+        function showDone() {
+            clearInterval(timerInterval);
+            show('doneScreen');
+            const elapsed = Math.round((Date.now() - startedAt) / 60000);
+            document.getElementById('doneSteps').textContent = steps.length;
+            document.getElementById('doneTime').textContent = elapsed > 0 ? `${elapsed}m` : '<1m';
         }
 
         function resetApp() {
-            steps = [];
-            currentStep = 0;
-            show('inputScreen');
+            steps = []; currentStep = 0;
             document.getElementById('taskInput').value = '';
+            show('inputScreen');
             document.getElementById('taskInput').focus();
+            updateRecent();
         }
 
-        // Enter key submits
+        // ── Share / Accountability ──
+        function shareTask() {
+            const step = steps[currentStep];
+            const text = `I'm using Unclump to get unstuck!\n\nCurrent step: ${step.description}\nStep ${step.step} of ${steps.length}\n\nTry it: ${window.location.href}`;
+            if (navigator.share) {
+                navigator.share({ title: 'Unclump — Working on a task', text });
+            } else {
+                navigator.clipboard.writeText(text).then(() => {
+                    const btn = document.getElementById('shareBtn');
+                    btn.textContent = 'Copied!';
+                    btn.classList.add('copied');
+                    setTimeout(() => { btn.textContent = 'Share'; btn.classList.remove('copied'); }, 2000);
+                }).catch(() => toast('Copy the link from your browser address bar'));
+            }
+        }
+
+        // ── Body Doubling ──
+        function showDoubling() { show('doublingScreen'); }
+        function closeDoubling() { show(steps.length > 0 ? 'stepsScreen' : 'inputScreen'); }
+
+        function startDoubling() {
+            doublingSeconds = 25 * 60;
+            document.getElementById('doublingStartBtn').classList.add('hidden');
+            document.getElementById('doublingStopBtn').style.display = '';
+            updateDoublingDisplay();
+            doublingInterval = setInterval(() => {
+                doublingSeconds--;
+                updateDoublingDisplay();
+                if (doublingSeconds <= 0) {
+                    clearInterval(doublingInterval);
+                    document.getElementById('doublingTimer').textContent = 'Done! 🎉';
+                    document.getElementById('doublingStopBtn').textContent = 'Great session';
+                }
+            }, 1000);
+        }
+
+        function stopDoubling() {
+            clearInterval(doublingInterval);
+            doublingSeconds = 25 * 60;
+            document.getElementById('doublingTimer').textContent = '25:00';
+            document.getElementById('doublingStartBtn').classList.remove('hidden');
+            document.getElementById('doublingStopBtn').style.display = 'none';
+            document.getElementById('doublingStopBtn').textContent = 'End session';
+        }
+
+        function updateDoublingDisplay() {
+            const m = Math.floor(doublingSeconds / 60);
+            const s = doublingSeconds % 60;
+            document.getElementById('doublingTimer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+        }
+
+        // ── Init ──
         document.getElementById('taskInput').addEventListener('keydown', e => {
             if (e.key === 'Enter') unclump();
         });
+        document.getElementById('doublingStopBtn').style.display = 'none';
+        updateRecent();
     </script>
 </body>
 </html>
