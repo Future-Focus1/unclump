@@ -76,9 +76,22 @@ async def root():
     }
 
 
-# ── Simple email waitlist (no DB needed for MVP) ──
+# ── Simple email waitlist (JSON file for persistence) ──
 
-waitlist_emails: list[str] = []
+import json as _json
+from pathlib import Path as _Path
+
+WAITLIST_FILE = _Path("waitlist.json")
+
+
+def _load_waitlist() -> list[str]:
+    if WAITLIST_FILE.exists():
+        return _json.loads(WAITLIST_FILE.read_text())
+    return []
+
+
+def _save_waitlist(emails: list[str]) -> None:
+    WAITLIST_FILE.write_text(_json.dumps(emails))
 
 
 class WaitlistRequest(BaseModel):
@@ -86,9 +99,18 @@ class WaitlistRequest(BaseModel):
 
 
 @app.post("/api/waitlist")
-async def waitlist(request: WaitlistRequest):
+async def waitlist_join(request: WaitlistRequest):
     email = request.email.strip().lower()
-    if email not in waitlist_emails:
-        waitlist_emails.append(email)
-        print(f"[WAITLIST] New signup: {email} (total: {len(waitlist_emails)})")
-    return {"status": "ok", "message": "You're on the list!"}
+    emails = _load_waitlist()
+    if email not in emails:
+        emails.append(email)
+        _save_waitlist(emails)
+        print(f"[WAITLIST] New signup: {email} (total: {len(emails)})")
+    return {"status": "ok", "message": "You're on the list!", "total": len(emails)}
+
+
+@app.get("/api/waitlist")
+async def waitlist_view():
+    """View signups — for you to check who's joined."""
+    emails = _load_waitlist()
+    return {"total": len(emails), "emails": emails}
