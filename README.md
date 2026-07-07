@@ -1,13 +1,13 @@
-# Unstuck
+# Unclump
 
-**The app that helps you start.**
+**Break through task paralysis.**
 
-Unstuck is an ADHD-friendly productivity app that solves the "execution chasm" — the gap between knowing what to do and actually doing it.
+Unclump is an ADHD-friendly productivity app that solves the "execution chasm" — the gap between knowing what to do and actually doing it.
 
 ## How It Works
 
 1. **Tell us what you're stuck on** — type it, say it, or WhatsApp it
-2. **AI breaks it into micro-steps** — step 1 is always so small you can't fail
+2. **AI unclumps it into micro-steps** — step 1 is always so small you can't fail
 3. **You start** — gentle accountability, body doubling, no guilt
 
 ## Architecture
@@ -18,6 +18,10 @@ backend/
 ├── main.py         # FastAPI server
 ├── test_engine.py  # Engine unit tests (21 tests)
 └── test_api.py     # API integration tests (7 tests)
+
+landing/
+├── index.html      # Landing page
+└── logo.jpg        # Unclump logo
 ```
 
 ## Quick Start
@@ -51,7 +55,7 @@ POST /api/breakdown
 
 - [x] AI task breakdown engine (with tests)
 - [x] FastAPI server with fallback
-- [x] Landing page
+- [x] Landing page + logo
 - [ ] Reddit validation
 - [ ] Flutter mobile app
 - [ ] WhatsApp bot

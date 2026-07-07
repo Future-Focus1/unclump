@@ -1,4 +1,4 @@
-"""Unstuck API — FastAPI server for the ADHD task breakdown service."""
+"""Unclump API — FastAPI server for the ADHD task breakdown service."""
 
 import os
 from fastapi import FastAPI, HTTPException
@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from engine import breakdown_task, breakdown_task_fallback, TaskBreakdown
 
 app = FastAPI(
-    title="Unstuck API",
+    title="Unclump API",
     description="AI-powered task breakdown for ADHD brains. Turns vague tasks into micro-steps so small you can't fail to start.",
     version="0.1.0",
 )
@@ -39,7 +39,7 @@ class TaskResponse(BaseModel):
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "service": "unstuck"}
+    return {"status": "ok", "service": "unclump"}
 
 
 @app.post("/api/breakdown", response_model=TaskResponse)
@@ -69,7 +69,7 @@ async def breakdown(request: TaskRequest):
 @app.get("/")
 async def root():
     return {
-        "name": "Unstuck API",
+        "name": "Unclump API",
         "version": "0.1.0",
         "docs": "/docs",
         "endpoint": "POST /api/breakdown",

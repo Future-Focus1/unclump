@@ -1,4 +1,4 @@
-"""Unstuck — AI Task Breakdown Service.
+"""Unclump — AI Task Breakdown Service.
 
 Core engine that turns a user's vague task into ADHD-friendly micro-steps.
 The key insight: Step 1 must be so trivially small it bypasses task paralysis.

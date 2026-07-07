@@ -1,4 +1,4 @@
-"""Tests for the Unstuck FastAPI application."""
+"""Tests for the Unclump FastAPI application."""
 
 import pytest
 from fastapi.testclient import TestClient
@@ -15,14 +15,14 @@ def test_health_check(client):
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "ok"
-    assert data["service"] == "unstuck"
+    assert data["service"] == "unclump"
 
 
 def test_root_endpoint(client):
     response = client.get("/")
     assert response.status_code == 200
     data = response.json()
-    assert data["name"] == "Unstuck API"
+    assert data["name"] == "Unclump API"
 
 
 def test_breakdown_endpoint_uses_fallback(client):
