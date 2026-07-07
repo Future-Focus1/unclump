@@ -1,0 +1,6 @@
+unstuck/
+__pycache__/
+.env
+*.pyc
+venv/
+.venv/
