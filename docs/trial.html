@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Unclump Trial</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #faf9f6;
+            --surface: #ffffff;
+            --text: #1a1a1a;
+            --text-secondary: #6b6b6b;
+            --text-tertiary: #999;
+            --accent: #5b9a6b;
+            --accent-light: #e8f5e9;
+            --accent-dark: #3d704a;
+            --border: #e8e5df;
+            --border-light: #f0ede8;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.08);
+            --radius: 16px;
+            --radius-lg: 24px;
+            --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font);
+            -webkit-font-smoothing: antialiased;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── App Shell ── */
+        .app {
+            width: 100%;
+            max-width: 480px;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            z-index: 1;
+            padding: 0 1.25rem;
+            padding-bottom: calc(1.5rem + var(--safe-bottom));
+        }
+
+        /* ── Header ── */
+        .app-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1.25rem 0 0;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .app-header img {
+            max-width: 80vw;
+            height: auto;
+        }
+        .trial-logo {
+            width: min(260px, 70vw);
+            height: auto;
+            display: block;
+        }
+        .wordmark {
+            font-size: 2.6rem;
+            font-weight: 800;
+            letter-spacing: 0;
+            color: var(--text);
+        }
+        .trial-badge {
+            margin-top: 0.35rem;
+            color: var(--accent-dark);
+            background: var(--accent-light);
+            border-radius: 100px;
+            padding: 0.3rem 0.8rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .app-header .header-actions {
+            position: absolute;
+            top: 1.25rem;
+            right: 0;
+            display: flex;
+            gap: 0.5rem;
+        }
+        .icon-btn {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; cursor: pointer;
+            transition: background 0.15s;
+        }
+        .icon-btn:hover { background: var(--accent-light); }
+        .icon-btn.active { background: var(--accent-light); border-color: var(--accent); }
+
+        /* ── Screens ── */
+        .screen {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+            animation: fadeIn 0.25s ease;
+        }
+        .screen.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ── Input Screen ── */
+        .input-screen {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem 0;
+        }
+        .input-screen h1 {
+            font-size: 1.65rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            margin-bottom: 0.4rem;
+        }
+        .input-screen .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 2rem;
+            line-height: 1.5;
+        }
+
+        .input-card {
+            width: 100%;
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-md);
+            padding: 1.5rem;
+            text-align: left;
+        }
+
+        .task-input {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            border-radius: 14px;
+            border: 1.5px solid var(--border);
+            background: var(--bg);
+            font-size: 1.05rem;
+            font-family: var(--font);
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            margin-bottom: 0.75rem;
+        }
+        .task-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-light);
+        }
+        .task-input::placeholder { color: #c0bdb5; }
+
+        .input-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.85rem 1.25rem;
+            border-radius: 14px;
+            border: none;
+            font-size: 0.95rem;
+            font-weight: 600;
+            font-family: var(--font);
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary {
+            flex: 1;
+            background: var(--text);
+            color: white;
+        }
+        .btn-primary:hover { background: #333; }
+        .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+        .btn-icon-only {
+            width: 48px; height: 48px;
+            padding: 0;
+            border-radius: 14px;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+        .btn-icon-only:hover { background: var(--accent-light); border-color: var(--accent); }
+        .btn-icon-only.listening {
+            background: var(--accent-light);
+            border-color: var(--accent);
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(91,154,107,0.3); }
+            50% { box-shadow: 0 0 0 8px rgba(91,154,107,0); }
+        }
+
+        .recent-tasks {
+            margin-top: 1.5rem;
+            width: 100%;
+        }
+        .recent-tasks .label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-tertiary);
+            margin-bottom: 0.5rem;
+        }
+        .recent-chip {
+            display: inline-block;
+            padding: 0.45rem 0.9rem;
+            border-radius: 100px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            margin: 0 0.35rem 0.35rem 0;
+            transition: all 0.15s;
+        }
+        .recent-chip:hover { border-color: var(--accent); color: var(--text); }
+
+        /* ── Loading Screen ── */
+        .loading-screen {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        .loading-dots { display: flex; gap: 6px; margin-bottom: 1.5rem; }
+        .loading-dots span {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: bounce 0.6s infinite alternate;
+        }
+        .loading-dots span:nth-child(2) { animation-delay: 0.15s; }
+        .loading-dots span:nth-child(3) { animation-delay: 0.3s; }
+        @keyframes bounce { to { transform: translateY(-8px); opacity: 0.5; } }
+        .loading-screen p { color: var(--text-secondary); }
+
+        /* ── Steps Screen ── */
+        .steps-screen { padding-top: 1.5rem; }
+
+        .step-progress-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            justify-content: center;
+            margin-bottom: 1.75rem;
+        }
+        .step-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--border);
+            transition: all 0.3s;
+        }
+        .step-dot.done { background: var(--accent); transform: scale(1.2); }
+        .step-dot.current { background: var(--text); transform: scale(1.4); }
+
+        .session-insight {
+            background: var(--surface);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius);
+            padding: 0.9rem 1rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .session-insight .label {
+            color: var(--accent-dark);
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+        .session-insight .reason {
+            color: var(--text-secondary);
+            font-size: 0.86rem;
+            line-height: 1.45;
+        }
+
+        .step-card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-md);
+            padding: 2rem 1.5rem;
+            text-align: center;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .step-card .step-number {
+            display: inline-block;
+            padding: 0.25rem 0.85rem;
+            background: var(--accent-light);
+            color: var(--accent-dark);
+            border-radius: 100px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+            align-self: center;
+        }
+
+        .step-card .step-text {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.35;
+            margin-bottom: 2rem;
+            color: var(--text);
+        }
+
+        .support-note {
+            color: var(--text-secondary);
+            background: var(--accent-light);
+            border-radius: 14px;
+            padding: 0.85rem 1rem;
+            font-size: 0.88rem;
+            line-height: 1.45;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Timer */
+        .timer-container {
+            position: relative;
+            width: 130px;
+            height: 130px;
+            margin: 0 auto 1.75rem;
+        }
+        .timer-ring { position: absolute; inset: 0; }
+        .timer-ring svg { transform: rotate(-90deg); width: 100%; height: 100%; }
+        .timer-bg { fill: none; stroke: var(--border-light); stroke-width: 5; }
+        .timer-fill { fill: none; stroke: var(--accent); stroke-width: 5; stroke-linecap: round; transition: stroke-dashoffset 0.9s linear; }
+        .timer-center {
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column;
+        }
+        .timer-time { font-size: 1.6rem; font-weight: 700; color: var(--text); line-height: 1; }
+        .timer-label { font-size: 0.7rem; color: var(--text-tertiary); font-weight: 500; margin-top: 2px; }
+
+        .step-actions {
+            display: flex; gap: 0.65rem; margin-top: auto;
+        }
+        .feedback-actions {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.65rem;
+        }
+        .feedback-actions .btn {
+            min-width: 0;
+            padding: 0.72rem 0.45rem;
+            font-size: 0.78rem;
+            line-height: 1.15;
+        }
+        .btn-secondary {
+            flex: 1;
+            background: var(--surface);
+            color: var(--text);
+            border: 1.5px solid var(--border);
+            border-radius: 14px;
+        }
+        .btn-secondary:hover { border-color: var(--accent); background: var(--accent-light); }
+
+        .skip-hint {
+            text-align: center; font-size: 0.78rem;
+            color: var(--text-tertiary); margin-top: 0.65rem;
+        }
+
+        /* ── Done Screen ── */
+        .done-screen {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem 0;
+        }
+        .done-icon {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+        .done-screen h2 {
+            font-size: 1.65rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            margin-bottom: 0.4rem;
+        }
+        .done-screen p {
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+        .done-stats {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            margin: 1.25rem 0 1.75rem;
+        }
+        .done-stat {
+            text-align: center;
+        }
+        .done-stat .num {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-dark);
+        }
+        .done-stat .lbl {
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+            margin-top: 2px;
+        }
+
+        /* ── Body Doubling Screen ── */
+        .doubling-screen {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem 0;
+        }
+        .doubling-card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-md);
+            padding: 2rem 1.5rem;
+            width: 100%;
+        }
+        .doubling-card .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        .doubling-card h2 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+        }
+        .doubling-card p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+        .doubling-timer {
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: var(--accent-dark);
+            margin-bottom: 1.5rem;
+            font-variant-numeric: tabular-nums;
+        }
+        .doubling-presence {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+        .presence-dot {
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: breathe 2s infinite;
+        }
+        .presence-dot:nth-child(2) { animation-delay: 0.5s; }
+        .presence-dot:nth-child(3) { animation-delay: 1s; }
+        @keyframes breathe {
+            0%, 100% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* ── Share / Accountability ── */
+        .share-bar {
+            background: var(--surface);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius);
+            padding: 0.85rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 1rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .share-bar .share-text {
+            flex: 1;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+        .share-bar .btn-sm {
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            font-size: 0.8rem;
+            font-weight: 600;
+            font-family: var(--font);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s;
+        }
+        .share-bar .btn-sm:hover { border-color: var(--accent); background: var(--accent-light); }
+        .share-bar .btn-sm.copied { background: var(--accent-light); border-color: var(--accent); color: var(--accent-dark); }
+
+        /* ── Error ── */
+        .toast {
+            position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+            background: #1a1a1a; color: white;
+            padding: 0.75rem 1.25rem; border-radius: 100px;
+            font-size: 0.85rem; font-weight: 500;
+            z-index: 100; animation: toastIn 0.3s ease;
+            max-width: 90vw; text-align: center;
+        }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+        .error-banner {
+            background: #fef2f2;
+            color: #991b1b;
+            padding: 0.65rem 1rem;
+            border-radius: 12px;
+            font-size: 0.82rem;
+            margin-top: 0.75rem;
+            text-align: center;
+        }
+        .trial-note {
+            color: var(--text-tertiary);
+            font-size: 0.78rem;
+            line-height: 1.45;
+            text-align: center;
+            margin-top: 1rem;
+        }
+        @media (max-width: 380px) {
+            .feedback-actions { grid-template-columns: 1fr; }
+        }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="app-header">
+            <img class="trial-logo" src="logo.png" alt="Unclump">
+            <div class="trial-badge">Private Trial</div>
+            <div class="header-actions">
+                <button class="icon-btn" id="doublingBtn" onclick="showDoubling()" title="Body doubling">
+                    👥
+                </button>
+            </div>
+        </header>
+
+        <!-- ── INPUT SCREEN ── -->
+        <div class="screen active" id="inputScreen">
+            <div class="input-screen">
+                <h1>What are you stuck on?</h1>
+                <p class="subtitle">Be as messy as you need. We'll sort it out.</p>
+
+                <div class="input-card">
+                    <input type="text" class="task-input" id="taskInput"
+                           placeholder="e.g. clean my flat, reply to that email, start my taxes..."
+                           autocomplete="off" autofocus maxlength="300">
+                    <div class="input-actions">
+                        <button class="btn btn-primary" onclick="unclump()" id="unclumpBtn">
+                            Unclump it
+                        </button>
+                        <button class="btn btn-icon-only" onclick="voiceInput()" id="voiceBtn" title="Use voice">
+                            🎙️
+                        </button>
+                    </div>
+                    <div class="error-banner hidden" id="inputError"></div>
+                </div>
+                <p class="trial-note">This trial runs fully in your browser. Nothing is sent to a server.</p>
+
+                <div class="recent-tasks hidden" id="recentTasks">
+                    <div class="label">Recent</div>
+                    <div id="recentChips"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── LOADING SCREEN ── -->
+        <div class="screen" id="loadingScreen">
+            <div class="loading-screen">
+                <div class="loading-dots">
+                    <span></span><span></span><span></span>
+                </div>
+                <p>Breaking this down into tiny steps...</p>
+            </div>
+        </div>
+
+        <!-- ── STEPS SCREEN ── -->
+        <div class="screen" id="stepsScreen">
+            <div class="steps-screen">
+                <div class="step-progress-row" id="stepDots"></div>
+                <div class="session-insight" id="sessionInsight">
+                    <div class="label" id="blockLabel">Stuck point</div>
+                    <div class="reason" id="blockReason">Finding the smallest safe entry point.</div>
+                </div>
+                <div class="step-card">
+                    <div class="step-number" id="stepBadge">Step 1 of 5</div>
+                    <div class="step-text" id="stepDescription"></div>
+                    <div class="support-note" id="supportNote"></div>
+                    <div class="timer-container" id="timerContainer">
+                        <div class="timer-ring">
+                            <svg viewBox="0 0 130 130">
+                                <circle class="timer-bg" cx="65" cy="65" r="60"/>
+                                <circle class="timer-fill" id="timerFill" cx="65" cy="65" r="60"
+                                        stroke-dasharray="376.991" stroke-dashoffset="0"/>
+                            </svg>
+                        </div>
+                        <div class="timer-center">
+                            <div class="timer-time" id="timerTime">0:30</div>
+                            <div class="timer-label">estimated</div>
+                        </div>
+                    </div>
+                    <div class="step-actions">
+                        <button class="btn btn-primary" id="stepDoneBtn" onclick="stepDone()">
+                            Done — next →
+                        </button>
+                        <button class="btn btn-secondary hidden" id="skipBtn" onclick="skipStep()">
+                            Skip
+                        </button>
+                    </div>
+                    <div class="feedback-actions">
+                        <button class="btn btn-secondary" onclick="sendFeedback('too_hard')">Too hard</button>
+                        <button class="btn btn-secondary" onclick="sendFeedback('need_smaller')">Make smaller</button>
+                        <button class="btn btn-secondary" onclick="sendFeedback('distracted')">I drifted</button>
+                        <button class="btn btn-secondary" onclick="sendFeedback('not_right')">Wrong step</button>
+                        <button class="btn btn-secondary" onclick="showDoubling()">Body double</button>
+                        <button class="btn btn-secondary" onclick="goBack()">New task</button>
+                    </div>
+                </div>
+                <div class="skip-hint hidden" id="skipHint">
+                    Timer's up — no pressure. Skip if you need to.
+                </div>
+                <div class="share-bar" id="shareBar">
+                    <div class="share-text" id="shareText">
+                        Working on a task. Want to share your progress?
+                    </div>
+                    <button class="btn-sm" onclick="shareTask()" id="shareBtn">Share</button>
+                </div>
+                <div style="text-align:center;margin-top:0.75rem;">
+                    <button class="btn btn-secondary" onclick="goBack()" style="border:none;background:transparent;font-size:0.82rem;color:var(--text-tertiary);">
+                        ← Try a different task
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── DONE SCREEN ── -->
+        <div class="screen" id="doneScreen">
+            <div class="done-screen">
+                <div class="done-icon">✨</div>
+                <h2>You did it.</h2>
+                <p>One step at a time. That's all it takes.</p>
+                <div class="done-stats">
+                    <div class="done-stat">
+                        <div class="num" id="doneSteps">0</div>
+                        <div class="lbl">steps completed</div>
+                    </div>
+                    <div class="done-stat">
+                        <div class="num" id="doneTime">0m</div>
+                        <div class="lbl">total time</div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="resetApp()" style="margin-top:0.5rem;">
+                    Unclump something else
+                </button>
+                <button class="btn btn-secondary" onclick="showDoubling()" style="margin-top:0.5rem;">
+                    👥 Start a coworking session
+                </button>
+            </div>
+        </div>
+
+        <!-- ── BODY DOUBLING SCREEN ── -->
+        <div class="screen" id="doublingScreen">
+            <div class="doubling-screen">
+                <div class="doubling-card">
+                    <div class="icon">👥</div>
+                    <h2>Work Together</h2>
+                    <p>You're not alone. Others are working alongside you right now — quietly, cameras off, just presence.</p>
+                    <div class="doubling-timer" id="doublingTimer">25:00</div>
+                    <div class="doubling-presence">
+                        <div class="presence-dot"></div>
+                        <div class="presence-dot"></div>
+                        <div class="presence-dot"></div>
+                    </div>
+                    <p style="color:var(--text-tertiary);font-size:0.8rem;">3 people working nearby</p>
+                    <button class="btn btn-primary" id="doublingStartBtn" onclick="startDoubling()">
+                        Start 25 min session
+                    </button>
+                    <button class="btn btn-secondary" id="doublingStopBtn" onclick="stopDoubling()" style="margin-top:0.5rem;">
+                        End session
+                    </button>
+                </div>
+                <button class="btn btn-secondary" onclick="closeDoubling()" style="margin-top:1rem;border:none;background:transparent;color:var(--text-tertiary);font-size:0.82rem;">
+                    ← Back to app
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ── State ──
+        const API_URL = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+            ? 'http://localhost:8000'
+            : 'https://unclump-api.onrender.com';
+        const USE_BROWSER_TRIAL = true;
+        let currentSession = null;
+        let steps = [], currentStep = 0, timerInterval = null;
+        let secondsLeft = 0, totalSeconds = 0, startedAt = null;
+        let doublingInterval = null, doublingSeconds = 25 * 60;
+        let taskHistory = JSON.parse(localStorage.getItem('unclump_history') || '[]');
+
+        // ── Screens ──
+        function show(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        // ── Toast ──
+        function toast(msg) {
+            const t = document.createElement('div');
+            t.className = 'toast'; t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; }, 2000);
+            setTimeout(() => t.remove(), 2500);
+        }
+
+        // ── Recent tasks ──
+        function updateRecent() {
+            const container = document.getElementById('recentTasks');
+            const chips = document.getElementById('recentChips');
+            if (taskHistory.length === 0) { container.classList.add('hidden'); return; }
+            container.classList.remove('hidden');
+            chips.innerHTML = taskHistory.slice(0, 5).map(t =>
+                `<span class="recent-chip" onclick="document.getElementById('taskInput').value='${t.replace(/'/g,"\\'")}';unclump();">${t}</span>`
+            ).join('');
+        }
+
+        // ── Voice ──
+        function voiceInput() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) { toast('Voice not supported in this browser. Try Chrome.'); return; }
+            const rec = new SpeechRecognition();
+            rec.lang = 'en-US'; rec.interimResults = false;
+            const btn = document.getElementById('voiceBtn');
+            btn.classList.add('listening');
+            rec.start();
+            rec.onresult = e => {
+                document.getElementById('taskInput').value = e.results[0][0].transcript;
+                btn.classList.remove('listening');
+                unclump();
+            };
+            rec.onerror = () => { btn.classList.remove('listening'); toast('Didn\'t catch that. Try typing.'); };
+            rec.onend = () => btn.classList.remove('listening');
+        }
+
+        // ── Unclump ──
+        const BLOCK_LABELS = {
+            overwhelm: 'Overwhelm',
+            unclear_next_step: 'Unclear next step',
+            shame: 'Shame spiral',
+            low_energy: 'Low energy',
+            avoidance: 'Avoidance',
+            sensory: 'Sensory friction',
+            emotional: 'Emotional load'
+        };
+
+        const BLOCK_REASONS = {
+            overwhelm: 'This may feel too large to enter all at once.',
+            unclear_next_step: 'The next action may not be visible enough yet.',
+            shame: 'Pressure and guilt can make starting feel unsafe.',
+            low_energy: 'Your available energy may be lower than the task is asking for.',
+            avoidance: 'This may need a lower-commitment first contact.',
+            sensory: 'The setup or environment may be adding friction.',
+            emotional: 'This task may be carrying more feeling than its size suggests.'
+        };
+
+        function makeId() {
+            return window.crypto && crypto.randomUUID ? crypto.randomUUID() : `trial-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        }
+
+        function guessBlockType(task) {
+            const text = task.toLowerCase();
+            if (/tired|exhausted|drained|low energy|can't move|cant move/.test(text)) return 'low_energy';
+            if (/ashamed|guilty|behind|late|failed|embarrassed|avoid|avoiding|putting off|procrastinating/.test(text)) return 'avoidance';
+            if (/don't know|dont know|where to start|unclear|confused|too much/.test(text)) return 'unclear_next_step';
+            if (/noisy|messy|bright|sensory|smell|sound/.test(text)) return 'sensory';
+            if (/scared|anxious|upset|angry|sad|fear/.test(text)) return 'emotional';
+            return 'overwhelm';
+        }
+
+        function baseStepsFor(task, blockType) {
+            const text = task.toLowerCase();
+            if (blockType === 'low_energy') {
+                return [
+                    ['Put both feet on the floor.', 10],
+                    ['Take one slow breath.', 10],
+                    ['Open the place where this task lives.', 20],
+                    ['Look at it for ten seconds, without fixing it yet.', 10],
+                    ['Do one tiny visible action.', 20]
+                ];
+            }
+            if (text.includes('email') || text.includes('message') || text.includes('reply')) {
+                return [
+                    ['Open the message without replying yet.', 15],
+                    ['Read only the first two lines.', 20],
+                    ['Type one rough sentence in the reply box.', 45],
+                    ['Add one useful detail.', 45],
+                    ['Read it once.', 30],
+                    ['Send it, or save the draft and close the tab.', 15]
+                ];
+            }
+            if (text.includes('clean') || text.includes('tidy') || text.includes('room')) {
+                return [
+                    ['Pick up one item you can see.', 20],
+                    ['Put that item where it belongs, or into one pile.', 30],
+                    ['Pick up the next closest item.', 20],
+                    ['Clear one small surface or patch of floor.', 60],
+                    ['Stop and notice the one area that changed.', 10]
+                ];
+            }
+            if (text.includes('tax') || text.includes('form') || text.includes('admin')) {
+                return [
+                    ['Open the folder, app, or website connected to this task.', 20],
+                    ['Find one document or page that belongs with it.', 45],
+                    ['Write today’s date on a note or at the top of a draft.', 15],
+                    ['Name the next missing piece.', 30],
+                    ['Put that missing piece somewhere visible.', 30]
+                ];
+            }
+            if (blockType === 'unclear_next_step') {
+                return [
+                    ['Open a blank note or the relevant app.', 15],
+                    ['Write one messy sentence about what needs to happen.', 30],
+                    ['Copy the first action word you can see.', 15],
+                    ['Do that action for twenty seconds.', 20]
+                ];
+            }
+            return [
+                ['Touch or open the thing connected to this task.', 10],
+                ['Look at it for ten seconds without fixing anything.', 10],
+                ['Name the first visible action out loud or in your head.', 15],
+                ['Do that action for thirty seconds.', 30],
+                ['Pause and decide whether to continue or stop.', 10]
+            ];
+        }
+
+        function supportNoteFor(blockType, isFirst) {
+            if (!isFirst) return 'Keep the next move visible and small.';
+            return {
+                overwhelm: 'This lowers the task until your brain has a doorway in.',
+                unclear_next_step: 'This turns the fog into one visible action.',
+                shame: 'This starts without asking you to fix everything at once.',
+                low_energy: 'This uses a very low-energy movement to build momentum.',
+                avoidance: 'This makes contact with the task without demanding full commitment.',
+                sensory: 'This reduces friction before asking for focus.',
+                emotional: 'This gives your body a small action while the feelings catch up.'
+            }[blockType] || 'This makes the task smaller than the resistance around it.';
+        }
+
+        function startBrowserTrialSession(task) {
+            const blockType = guessBlockType(task);
+            const microSteps = baseStepsFor(task, blockType).slice(0, 6).map(([description, estimatedSeconds], index) => ({
+                step: index + 1,
+                description,
+                estimated_seconds: Math.max(10, Math.min(120, estimatedSeconds)),
+                support_note: supportNoteFor(blockType, index === 0),
+                is_entry_point: index === 0
+            }));
+            return decorateSession({
+                session_id: makeId(),
+                status: 'active',
+                original_task: task,
+                block_type: blockType,
+                block_label: BLOCK_LABELS[blockType],
+                block_reason: BLOCK_REASONS[blockType],
+                entry_hook: 'No whole task right now. Only the next tiny movement.',
+                reflection_prompt: 'Which step felt easiest to start, even a little?',
+                current_step_index: 0,
+                completed_steps: 0,
+                total_steps: microSteps.length,
+                micro_steps: microSteps,
+                feedback_options: ['done', 'too_hard', 'need_smaller', 'distracted', 'not_right', 'skip'],
+                nudge: null,
+                session_summary: null
+            });
+        }
+
+        function decorateSession(session) {
+            session.total_steps = session.micro_steps.length;
+            session.current_step = session.status === 'complete'
+                ? null
+                : session.micro_steps[session.current_step_index] || null;
+            return session;
+        }
+
+        function browserAdaptiveStep(feedback) {
+            const blockType = currentSession.block_type;
+            const task = currentSession.original_task.toLowerCase();
+            if (feedback === 'distracted') {
+                return ['Look away from the screen and take one slow breath.', 10, 'This resets attention before choosing the next tiny action.'];
+            }
+            if (feedback === 'not_right') {
+                const description = task.includes('email') || task.includes('message') || task.includes('reply')
+                    ? "Open the message and read the sender's name."
+                    : 'Name one object, app, or page connected to this task.';
+                return [description, 15, 'Changing direction is allowed. The goal is to find a truer entry point.'];
+            }
+            if (blockType === 'shame') {
+                return ['Say: this can be messy, then touch the task for ten seconds.', 10, 'The action starts with permission instead of pressure.'];
+            }
+            return ['Touch or open the thing connected to this task.', 10, 'This counts as contact without requiring follow-through yet.'];
+        }
+
+        function handleBrowserTrialFeedback(feedback) {
+            if (!currentSession || currentSession.status === 'complete') return currentSession;
+            const index = currentSession.current_step_index;
+            const step = currentSession.micro_steps[index];
+            currentSession.nudge = null;
+            if (feedback === 'done') {
+                currentSession.completed_steps += 1;
+                currentSession.current_step_index += 1;
+                currentSession.nudge = 'Nice. The next step can stay small too.';
+            } else if (feedback === 'skip') {
+                currentSession.current_step_index += 1;
+                currentSession.nudge = 'Skipping is data, not failure. Keep moving to the next doorway.';
+            } else if (step) {
+                const [description, estimatedSeconds, supportNote] = browserAdaptiveStep(feedback);
+                currentSession.micro_steps[index] = {
+                    ...step,
+                    description,
+                    estimated_seconds: estimatedSeconds,
+                    support_note: supportNote,
+                    adapted_from: step.description,
+                    adapted_for: feedback
+                };
+                currentSession.nudge = 'Good catch. The app should adapt to you, not the other way around.';
+            }
+            if (currentSession.current_step_index >= currentSession.micro_steps.length) {
+                currentSession.status = 'complete';
+                currentSession.session_summary = `You completed ${currentSession.completed_steps} of ${currentSession.micro_steps.length} steps and learned that ${currentSession.block_label.toLowerCase()} may be part of this task's friction.`;
+                currentSession.nudge = 'You made contact with the task. That counts.';
+            }
+            return decorateSession(currentSession);
+        }
+
+        async function unclump() {
+            const task = document.getElementById('taskInput').value.trim();
+            if (!task) return showError('Tell us what you\'re stuck on first.');
+            hideError();
+
+            if (!taskHistory.includes(task)) {
+                taskHistory.unshift(task);
+                if (taskHistory.length > 10) taskHistory.pop();
+                localStorage.setItem('unclump_history', JSON.stringify(taskHistory));
+                updateRecent();
+            }
+
+            document.getElementById('unclumpBtn').disabled = true;
+            show('loadingScreen');
+
+            try {
+                if (USE_BROWSER_TRIAL) {
+                    const data = startBrowserTrialSession(task);
+                    applySession(data);
+                    startedAt = Date.now();
+                    showStep();
+                    return;
+                }
+                const res = await fetch(API_URL + '/api/session/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        task,
+                        preferred_tone: 'gentle'
+                    })
+                });
+                if (!res.ok) throw new Error('Server error');
+                const data = await res.json();
+                if (!data.current_step) throw new Error('No current step returned');
+                applySession(data);
+                startedAt = Date.now();
+                showStep();
+            } catch (e) {
+                showError('Something went wrong. The server might still be waking up — try again in a moment.');
+                show('inputScreen');
+            } finally {
+                document.getElementById('unclumpBtn').disabled = false;
+            }
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('inputError');
+            el.textContent = msg; el.classList.remove('hidden');
+        }
+        function hideError() {
+            document.getElementById('inputError').classList.add('hidden');
+        }
+
+        // ── Steps ──
+        function applySession(data) {
+            currentSession = data;
+            steps = data.micro_steps || [];
+            currentStep = data.current_step_index || 0;
+        }
+
+        function legacyShowStepUnused() {
+            if (currentStep >= steps.length) return showDone();
+            show('stepsScreen');
+
+            const step = steps[currentStep];
+            document.getElementById('stepBadge').textContent = `Step ${step.step} of ${steps.length}`;
+            document.getElementById('stepDescription').textContent = step.description;
+            const isLast = currentStep === steps.length - 1;
+            document.getElementById('stepDoneBtn').textContent = isLast ? 'Done — finish! ✨' : 'Done — next →';
+            document.getElementById('skipBtn').classList.add('hidden');
+            document.getElementById('skipHint').classList.add('hidden');
+
+            // Progress dots
+            document.getElementById('stepDots').innerHTML = steps.map((_, i) => {
+                let cls = i < currentStep ? 'done' : i === currentStep ? 'current' : '';
+                return `<div class="step-dot ${cls}"></div>`;
+            }).join('');
+
+            // Timer
+            secondsLeft = Math.max(10, Math.min(120, step.estimated_seconds));
+            totalSeconds = secondsLeft;
+            updateTimerDisplay();
+            startTimer();
+
+            // Share bar
+            document.getElementById('shareText').textContent =
+                `Working on: "${step.description}" — Step ${step.step} of ${steps.length}`;
+        }
+
+        function showStep() {
+            if (!currentSession || currentSession.status === 'complete' || !currentSession.current_step) return showDone();
+            show('stepsScreen');
+
+            const step = currentSession.current_step;
+            steps = currentSession.micro_steps || [];
+            currentStep = currentSession.current_step_index || 0;
+
+            document.getElementById('blockLabel').textContent = currentSession.block_label || 'Stuck point';
+            document.getElementById('blockReason').textContent = currentSession.block_reason || currentSession.entry_hook || 'Finding the smallest safe entry point.';
+            document.getElementById('stepBadge').textContent = `Step ${step.step} of ${currentSession.total_steps}`;
+            document.getElementById('stepDescription').textContent = step.description;
+            document.getElementById('supportNote').textContent = step.support_note || currentSession.entry_hook || '';
+            const isLast = currentStep >= steps.length - 1;
+            document.getElementById('stepDoneBtn').textContent = isLast ? 'Done - finish' : 'Done - next';
+            document.getElementById('skipBtn').classList.add('hidden');
+            document.getElementById('skipHint').classList.add('hidden');
+
+            document.getElementById('stepDots').innerHTML = steps.map((_, i) => {
+                let cls = i < currentStep ? 'done' : i === currentStep ? 'current' : '';
+                return `<div class="step-dot ${cls}"></div>`;
+            }).join('');
+
+            secondsLeft = Math.max(10, Math.min(120, step.estimated_seconds));
+            totalSeconds = secondsLeft;
+            updateTimerDisplay();
+            startTimer();
+
+            document.getElementById('shareText').textContent =
+                `Working on: "${step.description}" - Step ${step.step} of ${currentSession.total_steps}`;
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                secondsLeft--;
+                updateTimerDisplay();
+                if (secondsLeft <= 0) {
+                    clearInterval(timerInterval);
+                    document.getElementById('skipBtn').classList.remove('hidden');
+                    document.getElementById('skipHint').classList.remove('hidden');
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const s = Math.max(0, secondsLeft);
+            const m = Math.floor(s / 60);
+            const sec = s % 60;
+            document.getElementById('timerTime').textContent = `${m}:${sec.toString().padStart(2,'0')}`;
+
+            const progress = totalSeconds > 0 ? (totalSeconds - s) / totalSeconds : 1;
+            const circumference = 376.991;
+            document.getElementById('timerFill').style.strokeDashoffset = circumference * (1 - Math.min(1, progress));
+
+            // Color shift: green → amber when running out
+            const hue = s < 10 ? 30 : 130;
+            document.getElementById('timerFill').style.stroke = s < 10 ? '#d4a853' : 'var(--accent)';
+        }
+
+        async function sendFeedback(feedback) {
+            if (!currentSession || !currentSession.session_id) return;
+            clearInterval(timerInterval);
+            document.getElementById('skipBtn').classList.add('hidden');
+            document.getElementById('skipHint').classList.add('hidden');
+            setFeedbackDisabled(true);
+
+            try {
+                if (USE_BROWSER_TRIAL) {
+                    const data = handleBrowserTrialFeedback(feedback);
+                    applySession(data);
+                    if (data.nudge) toast(data.nudge);
+                    if (data.status === 'complete') {
+                        showDone();
+                    } else {
+                        showStep();
+                    }
+                    return;
+                }
+                const res = await fetch(`${API_URL}/api/session/${currentSession.session_id}/feedback`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ feedback })
+                });
+                if (!res.ok) throw new Error('Server error');
+                const data = await res.json();
+                applySession(data);
+                if (data.nudge) toast(data.nudge);
+                if (data.status === 'complete') {
+                    showDone();
+                } else {
+                    showStep();
+                }
+            } catch (e) {
+                toast('Could not update the session. Try again in a moment.');
+                startTimer();
+            } finally {
+                setFeedbackDisabled(false);
+            }
+        }
+
+        function setFeedbackDisabled(disabled) {
+            document.querySelectorAll('#stepsScreen button').forEach(btn => {
+                btn.disabled = disabled;
+            });
+        }
+
+        function stepDone() {
+            sendFeedback('done');
+        }
+
+        function skipStep() {
+            sendFeedback('skip');
+        }
+
+        function goBack() {
+            clearInterval(timerInterval);
+            currentSession = null;
+            steps = [];
+            currentStep = 0;
+            show('inputScreen');
+            document.getElementById('taskInput').focus();
+        }
+
+        // ── Done ──
+        function showDone() {
+            clearInterval(timerInterval);
+            show('doneScreen');
+            const elapsed = Math.round((Date.now() - startedAt) / 60000);
+            const completed = currentSession ? currentSession.completed_steps : steps.length;
+            document.getElementById('doneSteps').textContent = completed;
+            document.getElementById('doneTime').textContent = elapsed > 0 ? `${elapsed}m` : '<1m';
+            if (currentSession && currentSession.session_summary) {
+                document.querySelector('#doneScreen p').textContent = currentSession.session_summary;
+            } else {
+                document.querySelector('#doneScreen p').textContent = "One step at a time. That's all it takes.";
+            }
+        }
+
+        function resetApp() {
+            currentSession = null;
+            steps = []; currentStep = 0;
+            document.getElementById('taskInput').value = '';
+            show('inputScreen');
+            document.getElementById('taskInput').focus();
+            updateRecent();
+        }
+
+        // ── Share / Accountability ──
+        function shareTask() {
+            const step = currentSession && currentSession.current_step ? currentSession.current_step : steps[currentStep];
+            if (!step) return;
+            const total = currentSession ? currentSession.total_steps : steps.length;
+            const text = `I'm using Unclump to get unstuck!\n\nCurrent step: ${step.description}\nStep ${step.step} of ${total}\n\nTry it: ${window.location.href}`;
+            if (navigator.share) {
+                navigator.share({ title: 'Unclump — Working on a task', text });
+            } else {
+                navigator.clipboard.writeText(text).then(() => {
+                    const btn = document.getElementById('shareBtn');
+                    btn.textContent = 'Copied!';
+                    btn.classList.add('copied');
+                    setTimeout(() => { btn.textContent = 'Share'; btn.classList.remove('copied'); }, 2000);
+                }).catch(() => toast('Copy the link from your browser address bar'));
+            }
+        }
+
+        // ── Body Doubling ──
+        function showDoubling() { show('doublingScreen'); }
+        function closeDoubling() {
+            const hasActiveSession = currentSession && currentSession.status !== 'complete';
+            show(hasActiveSession ? 'stepsScreen' : 'inputScreen');
+        }
+
+        function startDoubling() {
+            doublingSeconds = 25 * 60;
+            document.getElementById('doublingStartBtn').classList.add('hidden');
+            document.getElementById('doublingStopBtn').style.display = '';
+            updateDoublingDisplay();
+            doublingInterval = setInterval(() => {
+                doublingSeconds--;
+                updateDoublingDisplay();
+                if (doublingSeconds <= 0) {
+                    clearInterval(doublingInterval);
+                    document.getElementById('doublingTimer').textContent = 'Done! 🎉';
+                    document.getElementById('doublingStopBtn').textContent = 'Great session';
+                }
+            }, 1000);
+        }
+
+        function stopDoubling() {
+            clearInterval(doublingInterval);
+            doublingSeconds = 25 * 60;
+            document.getElementById('doublingTimer').textContent = '25:00';
+            document.getElementById('doublingStartBtn').classList.remove('hidden');
+            document.getElementById('doublingStopBtn').style.display = 'none';
+            document.getElementById('doublingStopBtn').textContent = 'End session';
+        }
+
+        function updateDoublingDisplay() {
+            const m = Math.floor(doublingSeconds / 60);
+            const s = doublingSeconds % 60;
+            document.getElementById('doublingTimer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+        }
+
+        // ── Init ──
+        document.getElementById('taskInput').addEventListener('keydown', e => {
+            if (e.key === 'Enter') unclump();
+        });
+        document.getElementById('doublingStopBtn').style.display = 'none';
+        updateRecent();
+    </script>
+</body>
+</html>
