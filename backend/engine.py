@@ -1010,10 +1010,10 @@ def _fallback_coworking_periodic(
     index: int,
 ) -> str:
     variants = [
-        f"I’m starting {coworker_task}. tiny step first, then we move.",
-        f"Checking in: I’ve got {coworker_task} open now. one quiet push.",
-        f"Still here. I’m doing {coworker_task} for a few mins, then stretch.",
-        f"Half-focus counts. I’m nudging {coworker_task} forward bit by bit.",
+        f"I'm starting {coworker_task}. tiny step first, then we move.",
+        f"Checking in: I've got {coworker_task} open now. one quiet push.",
+        f"Still here. I'm doing {coworker_task} for a few mins, then stretch.",
+        f"Half-focus counts. I'm nudging {coworker_task} forward bit by bit.",
     ]
     return variants[index % len(variants)]
 
@@ -1027,18 +1027,18 @@ def _fallback_coworking_reply(
     lower = user_message.lower()
     if any(word in lower for word in ["stuck", "can't", "cant", "hard", "overwhelmed"]):
         variants = [
-            "Same vibe. I’d shrink it until it feels almost silly-small.",
+            "Same vibe. I'd shrink it until it feels almost silly-small.",
             "Could you open the task and only look at it for 10 sec?",
         ]
     elif "?" in user_message:
         variants = [
-            "I’d pick the easiest doorway, not the best one.",
+            "I'd pick the easiest doorway, not the best one.",
             "Maybe write the ugly first version and let it be bad for now.",
         ]
     else:
         variants = [
-            "I hear you. I’m staying with my tiny step too.",
-            "Nice, keep it small. I’m doing one messy bit over here.",
+            "I hear you. I'm staying with my tiny step too.",
+            "Nice, keep it small. I'm doing one messy bit over here.",
         ]
     return variants[index % len(variants)]
 
