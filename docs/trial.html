@@ -814,6 +814,42 @@
             return window.crypto && crypto.randomUUID ? crypto.randomUUID() : `trial-${Date.now()}-${Math.random().toString(16).slice(2)}`;
         }
 
+        function taskLabel(task, maxLength = 80) {
+            const label = task.trim().replace(/\s+/g, ' ');
+            if (!label) return 'this task';
+            return label.length > maxLength ? label.slice(0, maxLength - 3).trimEnd() + '...' : label;
+        }
+
+        function includesAny(text, terms) {
+            return terms.some(term => text.includes(term));
+        }
+
+        function tinyEntryActionForText(task) {
+            const text = task.toLowerCase();
+            if (includesAny(text, ['email', 'message', 'reply', 'inbox', 'dm', 'whatsapp'])) return 'Open the email, message, or inbox without replying yet.';
+            if (includesAny(text, ['clean', 'tidy', 'room', 'flat', 'house', 'desk', 'kitchen'])) return 'Pick up one item you can see.';
+            if (includesAny(text, ['tax', 'form', 'admin', 'paperwork', 'application'])) return 'Open the folder, app, or website for this admin task.';
+            if (includesAny(text, ['write', 'essay', 'report', 'proposal', 'draft', 'blog'])) return 'Open a blank note or the document for this writing task.';
+            if (includesAny(text, ['call', 'phone', 'ring', 'appointment', 'book'])) return 'Open the contact, number, or booking page.';
+            if (includesAny(text, ['laundry', 'washing', 'clothes'])) return 'Pick up one piece of laundry.';
+            if (includesAny(text, ['dishes', 'washing up', 'plates', 'sink'])) return 'Pick up one dish, cup, or piece of cutlery.';
+            if (includesAny(text, ['study', 'revise', 'revision', 'learn', 'course', 'homework'])) return 'Open the notes, book, course page, or homework file.';
+            return `Open a note and type: "${taskLabel(task)}".`;
+        }
+
+        function supportMessageForTask(task, label) {
+            const text = task.toLowerCase();
+            if (includesAny(text, ['email', 'message', 'reply', 'inbox', 'dm', 'whatsapp'])) return `For "${label}", the reply only has to become visible before it becomes polished.`;
+            if (includesAny(text, ['clean', 'tidy', 'room', 'flat', 'house', 'desk', 'kitchen'])) return `For "${label}", change one visible patch instead of taking on the whole space.`;
+            if (includesAny(text, ['tax', 'form', 'admin', 'paperwork', 'application'])) return `For "${label}", find one document or missing answer before solving the whole admin job.`;
+            if (includesAny(text, ['write', 'essay', 'report', 'proposal', 'draft', 'blog'])) return `For "${label}", make one rough sentence exist before asking it to be good.`;
+            if (includesAny(text, ['call', 'phone', 'ring', 'appointment', 'book'])) return `For "${label}", put the number, contact, or booking page in front of you first.`;
+            if (includesAny(text, ['laundry', 'washing', 'clothes'])) return `For "${label}", move one piece of laundry before sorting the whole pile.`;
+            if (includesAny(text, ['dishes', 'washing up', 'plates', 'sink'])) return `For "${label}", one dish counts as a real start.`;
+            if (includesAny(text, ['study', 'revise', 'revision', 'learn', 'course', 'homework'])) return `For "${label}", use one heading, question, or example as the entry point.`;
+            return `For "${label}", make the task visible before trying to solve it.`;
+        }
+
         function guessBlockType(task) {
             const text = task.toLowerCase();
             if (/tired|exhausted|drained|low energy|can't move|cant move/.test(text)) return 'low_energy';
@@ -826,57 +862,111 @@
 
         function baseStepsFor(task, blockType) {
             const text = task.toLowerCase();
+            const label = taskLabel(task);
             if (blockType === 'low_energy') {
                 return [
                     ['Put both feet on the floor.', 10],
-                    ['Take one slow breath.', 10],
-                    ['Open the place where this task lives.', 20],
-                    ['Look at it for ten seconds, without fixing it yet.', 10],
-                    ['Do one tiny visible action.', 20]
+                    [`Take one slow breath while keeping "${label}" as the only task.`, 10],
+                    [tinyEntryActionForText(task), 20],
+                    ['Look at the task page or object for ten seconds without fixing it yet.', 10],
+                    ['Move one task-related item, tab, or sentence into view.', 20]
                 ];
             }
-            if (text.includes('email') || text.includes('message') || text.includes('reply')) {
+            if (includesAny(text, ['email', 'message', 'reply', 'inbox', 'dm', 'whatsapp'])) {
                 return [
-                    ['Open the message without replying yet.', 15],
-                    ['Read only the first two lines.', 20],
+                    ['Open the email, message, or inbox without replying yet.', 15],
+                    ["Read only the sender's name and the first line.", 20],
                     ['Type one rough sentence in the reply box.', 45],
-                    ['Add one useful detail.', 45],
-                    ['Read it once.', 30],
+                    ['Add one useful detail or answer one question from the message.', 45],
+                    ['Read the draft once without rewriting everything.', 30],
                     ['Send it, or save the draft and close the tab.', 15]
                 ];
             }
-            if (text.includes('clean') || text.includes('tidy') || text.includes('room')) {
+            if (includesAny(text, ['clean', 'tidy', 'room', 'flat', 'house', 'desk', 'kitchen'])) {
                 return [
                     ['Pick up one item you can see.', 20],
-                    ['Put that item where it belongs, or into one pile.', 30],
+                    ['Put that item where it belongs, or into one temporary pile.', 30],
                     ['Pick up the next closest item.', 20],
-                    ['Clear one small surface or patch of floor.', 60],
-                    ['Stop and notice the one area that changed.', 10]
+                    ['Clear one small patch of floor, desk, or counter.', 60],
+                    ['Put rubbish from that patch into a bin or bag.', 45],
+                    ['Stop with that one patch visibly different.', 10]
                 ];
             }
-            if (text.includes('tax') || text.includes('form') || text.includes('admin')) {
+            if (includesAny(text, ['tax', 'form', 'admin', 'paperwork', 'application'])) {
                 return [
-                    ['Open the folder, app, or website connected to this task.', 20],
-                    ['Find one document or page that belongs with it.', 45],
-                    ['Write today’s date on a note or at the top of a draft.', 15],
-                    ['Name the next missing piece.', 30],
-                    ['Put that missing piece somewhere visible.', 30]
+                    ['Open the folder, app, or website for this admin task.', 20],
+                    ['Find one document, form, or page that belongs with it.', 45],
+                    ["Put today's date on a note or at the top of a draft.", 15],
+                    ['Write the name of one missing document or answer.', 30],
+                    ['Move that missing piece into view, or write where it probably is.', 45],
+                    ['Leave the admin page open with the next missing piece visible.', 10]
+                ];
+            }
+            if (includesAny(text, ['write', 'essay', 'report', 'proposal', 'draft', 'blog'])) {
+                return [
+                    ['Open a blank note or the document for this writing task.', 15],
+                    ['Type one messy sentence about what the piece needs to say.', 45],
+                    ['Add one bullet that starts with a verb.', 30],
+                    ['Write one imperfect line under that bullet.', 60],
+                    ['Mark the line with a placeholder if it needs fixing later.', 15],
+                    ['Leave the document open with the rough line visible.', 10]
+                ];
+            }
+            if (includesAny(text, ['call', 'phone', 'ring', 'appointment', 'book'])) {
+                return [
+                    ['Open the contact, number, or booking page.', 20],
+                    ['Write one sentence for what you need from the call or booking.', 40],
+                    ['Check the opening hours, calendar, or next available slot.', 45],
+                    ['Put the number or booking button in front of you.', 15],
+                    ['Start the call, or choose one slot and leave it selected.', 30],
+                    ['Write down the result or the next time to try.', 20]
+                ];
+            }
+            if (includesAny(text, ['laundry', 'washing', 'clothes'])) {
+                return [
+                    ['Pick up one piece of laundry.', 10],
+                    ['Carry it to the basket, machine, or one clothes pile.', 20],
+                    ['Pick up two more pieces from the same area.', 30],
+                    ['Open the machine, basket, drawer, or drying space.', 20],
+                    ['Move one small load to the next place it belongs.', 60],
+                    ['Leave the laundry area with one pile changed.', 10]
+                ];
+            }
+            if (includesAny(text, ['dishes', 'washing up', 'plates', 'sink'])) {
+                return [
+                    ['Pick up one dish, cup, or piece of cutlery.', 10],
+                    ['Put it beside the sink or into the dishwasher.', 15],
+                    ['Turn on the tap or open the dishwasher door.', 10],
+                    ['Wash or load that one item.', 30],
+                    ['Repeat with the next closest item.', 30],
+                    ['Stop after one small group is done.', 10]
+                ];
+            }
+            if (includesAny(text, ['study', 'revise', 'revision', 'learn', 'course', 'homework'])) {
+                return [
+                    ['Open the notes, book, course page, or homework file.', 20],
+                    ['Find one heading, question, or example connected to this task.', 30],
+                    ['Read only that one heading, question, or example.', 45],
+                    ['Write one rough answer, keyword, or question beside it.', 45],
+                    ['Mark the next heading or question with a dot.', 10],
+                    ['Close or continue after that one marked point.', 10]
                 ];
             }
             if (blockType === 'unclear_next_step') {
                 return [
-                    ['Open a blank note or the relevant app.', 15],
-                    ['Write one messy sentence about what needs to happen.', 30],
-                    ['Copy the first action word you can see.', 15],
-                    ['Do that action for twenty seconds.', 20]
+                    [`Open a note and type: "${label}".`, 15],
+                    ['Underline one word in that sentence that points to a real place, person, or object.', 20],
+                    ['Open or move that place, person, object, page, or tab into view.', 30],
+                    ['Look at it for ten seconds without solving it yet.', 10]
                 ];
             }
             return [
-                ['Name the next visible action out loud or in your head.', 10],
-                ['Look at it for ten seconds without fixing anything.', 10],
-                ['Do the smallest visible part for twenty seconds.', 20],
-                ['Do that action for thirty seconds.', 30],
-                ['Pause and decide whether to continue or stop.', 10]
+                [`Open a note and type: "${label}".`, 15],
+                ['Underline one word in that sentence that points to a real place, person, or object.', 20],
+                ['Open or move that place, person, object, page, or tab into view.', 30],
+                ['Look at it for ten seconds without solving it yet.', 10],
+                ['Write the first touch, click, or move available from here.', 20],
+                ['Make that touch, click, or move for twenty seconds.', 20]
             ];
         }
 
@@ -909,7 +999,7 @@
                 block_type: blockType,
                 block_label: BLOCK_LABELS[blockType],
                 block_reason: BLOCK_REASONS[blockType],
-                entry_hook: 'No whole task right now. Only the next tiny movement.',
+                entry_hook: `No whole task right now. Only the first doorway into "${taskLabel(task, 70)}".`,
                 reflection_prompt: 'Which step felt easiest to start, even a little?',
                 current_step_index: 0,
                 completed_steps: 0,
@@ -936,9 +1026,9 @@
                 return ['Look away from the screen and take one slow breath.', 10, 'This resets attention before choosing the next tiny action.'];
             }
             if (feedback === 'not_right') {
-                const description = task.includes('email') || task.includes('message') || task.includes('reply')
+                const description = includesAny(task, ['email', 'message', 'reply', 'inbox', 'dm', 'whatsapp'])
                     ? "Open the message and read the sender's name."
-                    : 'Name one object, app, or page connected to this task.';
+                    : tinyEntryActionForText(currentSession.original_task);
                 return [description, 15, 'Changing direction is allowed. The goal is to find a truer entry point.'];
             }
             if (blockType === 'shame') {
@@ -956,7 +1046,7 @@
             if (task.includes('write') || task.includes('essay') || task.includes('report')) {
                 return ['Open a blank note and type one rough word.', 10, 'A rough word is enough to break the blank-page seal.'];
             }
-            return ['Name the next visible action out loud.', 10, 'This turns the task into one concrete next move.'];
+            return [tinyEntryActionForText(currentSession.original_task), 10, 'This lowers the task to one concrete point of contact.'];
         }
 
         function handleBrowserTrialFeedback(feedback) {
@@ -996,18 +1086,19 @@
         }
 
         function browserSupportNudge(moment) {
-            const state = currentSession ? currentSession.block_label : 'stuck';
-            const step = currentSession && currentSession.current_step ? currentSession.current_step.description : 'Choose one tiny visible move.';
+            const originalTask = currentSession ? currentSession.original_task : 'this task';
+            const label = taskLabel(originalTask, 70);
+            const step = currentSession && currentSession.current_step ? currentSession.current_step.description : tinyEntryActionForText(originalTask);
             if (moment === 'distracted') {
                 return {
-                    message: 'Attention wandered. That is information, not a verdict.',
-                    suggested_action: 'Look away from the screen and take one slow breath.',
+                    message: `Attention wandered from "${label}". That is information, not a verdict.`,
+                    suggested_action: 'Look away from the screen, take one slow breath, then put the task page or object back in view.',
                     reminder_after_minutes: 5,
                     tone: 'gentle'
                 };
             }
             return {
-                message: `${state} needs a smaller doorway.`,
+                message: supportMessageForTask(originalTask, label),
                 suggested_action: step,
                 reminder_after_minutes: 10,
                 tone: 'gentle'

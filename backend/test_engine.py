@@ -13,6 +13,7 @@ from engine import (
     _parse_response,
     _parse_support_message,
     _parse_session_response,
+    _provider_request_options,
     TaskBreakdown,
     MicroStep,
     SYSTEM_PROMPT,
@@ -21,6 +22,12 @@ from engine import (
 
 class TestParseResponse:
     """Unit tests for _parse_response — no API calls."""
+
+    def test_provider_options_disable_deepseek_thinking(self):
+        assert _provider_request_options("deepseek") == {
+            "extra_body": {"thinking": {"type": "disabled"}}
+        }
+        assert _provider_request_options("openai") == {}
 
     def test_parses_valid_json(self):
         raw = json.dumps({
@@ -193,6 +200,10 @@ class TestFallbackBreakdown:
         result = breakdown_task_fallback("something completely unknown xyz")
         assert len(result.micro_steps) > 0
         assert result.micro_steps[0].is_entry_point is True
+        assert "something completely unknown xyz" in result.micro_steps[0].description
+        descriptions = " ".join(step.description for step in result.micro_steps)
+        assert "Notice: you've started" not in descriptions
+        assert "Do the next visible action" not in descriptions
 
     def test_all_steps_have_valid_estimates(self):
         result = breakdown_task_fallback("clean")
@@ -239,6 +250,16 @@ class TestUnclumpSessionPlan:
         )
         assert result.block_type == "low_energy"
         assert result.micro_steps[0].is_entry_point is True
+        assert "laundry" in " ".join(step.description.lower() for step in result.micro_steps)
+
+    def test_session_fallback_uses_task_context_for_unknown(self):
+        result = create_unclump_session_plan_fallback(
+            "sort the confusing visa documents",
+            context={"recent_friction": "too much"},
+        )
+        descriptions = " ".join(step.description for step in result.micro_steps)
+        assert "sort the confusing visa documents" in descriptions
+        assert "Do the next visible action" not in descriptions
 
     def test_adaptive_fallback_makes_step_smaller(self):
         current_step = {
@@ -274,3 +295,11 @@ class TestUnclumpSessionPlan:
             user_state="stuck",
         )
         assert "sender" in result["suggested_action"]
+        assert "reply" in result["message"]
+
+        clean_result = create_support_message_fallback(
+            "clean the kitchen counter",
+            moment="nudge",
+            user_state="overwhelmed",
+        )
+        assert "visible patch" in clean_result["message"]

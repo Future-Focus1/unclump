@@ -7,6 +7,7 @@ The key insight: Step 1 must be so trivially small it bypasses task paralysis.
 from dataclasses import dataclass, field
 import json
 import os
+import re
 from openai import OpenAI
 
 
@@ -104,6 +105,152 @@ DEEPSEEK_MODEL = "deepseek-v4-flash"
 OPENAI_MODEL = "gpt-4o-mini"
 
 
+def _clean_task_label(task: str, max_length: int = 80) -> str:
+    """Return a compact task label that can be safely echoed in fallback steps."""
+    label = re.sub(r"\s+", " ", task.strip())
+    if not label:
+        return "this task"
+    if len(label) > max_length:
+        return label[: max_length - 3].rstrip() + "..."
+    return label
+
+
+def _contains_any(text: str, words: tuple[str, ...]) -> bool:
+    return any(word in text for word in words)
+
+
+def _fallback_steps_for_task(task: str) -> list[tuple[str, int]]:
+    """Task-shaped deterministic steps for when the AI provider is unavailable."""
+    text = task.lower()
+    label = _clean_task_label(task)
+
+    if _contains_any(text, ("email", "message", "reply", "inbox", "dm", "whatsapp")):
+        return [
+            ("Open the email, message, or inbox without replying yet.", 15),
+            ("Read only the sender's name and the first line.", 20),
+            ("Type one rough sentence in the reply box.", 45),
+            ("Add one useful detail or answer one question from the message.", 45),
+            ("Read the draft once without rewriting everything.", 30),
+            ("Send it, or save the draft and close the tab.", 15),
+        ]
+
+    if _contains_any(text, ("clean", "tidy", "room", "flat", "house", "desk", "kitchen")):
+        return [
+            ("Pick up one item you can see.", 20),
+            ("Put that item where it belongs, or into one temporary pile.", 30),
+            ("Pick up the next closest item.", 20),
+            ("Clear one small patch of floor, desk, or counter.", 60),
+            ("Put rubbish from that patch into a bin or bag.", 45),
+            ("Stop with that one patch visibly different.", 10),
+        ]
+
+    if _contains_any(text, ("tax", "form", "admin", "paperwork", "application")):
+        return [
+            ("Open the folder, app, or website for this admin task.", 20),
+            ("Find one document, form, or page that belongs with it.", 45),
+            ("Put today's date on a note or at the top of a draft.", 15),
+            ("Write the name of one missing document or answer.", 30),
+            ("Move that missing piece into view, or write where it probably is.", 45),
+            ("Leave the admin page open with the next missing piece visible.", 10),
+        ]
+
+    if _contains_any(text, ("write", "essay", "report", "proposal", "draft", "blog")):
+        return [
+            ("Open a blank note or the document for this writing task.", 15),
+            ("Type one messy sentence about what the piece needs to say.", 45),
+            ("Add one bullet that starts with a verb.", 30),
+            ("Write one imperfect line under that bullet.", 60),
+            ("Mark the line with a placeholder if it needs fixing later.", 15),
+            ("Leave the document open with the rough line visible.", 10),
+        ]
+
+    if _contains_any(text, ("call", "phone", "ring", "appointment", "book")):
+        return [
+            ("Open the contact, number, or booking page.", 20),
+            ("Write one sentence for what you need from the call or booking.", 40),
+            ("Check the opening hours, calendar, or next available slot.", 45),
+            ("Put the number or booking button in front of you.", 15),
+            ("Start the call, or choose one slot and leave it selected.", 30),
+            ("Write down the result or the next time to try.", 20),
+        ]
+
+    if _contains_any(text, ("laundry", "washing", "clothes")):
+        return [
+            ("Pick up one piece of laundry.", 10),
+            ("Carry it to the basket, machine, or one clothes pile.", 20),
+            ("Pick up two more pieces from the same area.", 30),
+            ("Open the machine, basket, drawer, or drying space.", 20),
+            ("Move one small load to the next place it belongs.", 60),
+            ("Leave the laundry area with one pile changed.", 10),
+        ]
+
+    if _contains_any(text, ("dishes", "washing up", "plates", "sink")):
+        return [
+            ("Pick up one dish, cup, or piece of cutlery.", 10),
+            ("Put it beside the sink or into the dishwasher.", 15),
+            ("Turn on the tap or open the dishwasher door.", 10),
+            ("Wash or load that one item.", 30),
+            ("Repeat with the next closest item.", 30),
+            ("Stop after one small group is done.", 10),
+        ]
+
+    if _contains_any(text, ("study", "revise", "revision", "learn", "course", "homework")):
+        return [
+            ("Open the notes, book, course page, or homework file.", 20),
+            ("Find one heading, question, or example connected to this task.", 30),
+            ("Read only that one heading, question, or example.", 45),
+            ("Write one rough answer, keyword, or question beside it.", 45),
+            ("Mark the next heading or question with a dot.", 10),
+            ("Close or continue after that one marked point.", 10),
+        ]
+
+    if _contains_any(text, ("workout", "exercise", "gym", "run", "walk")):
+        return [
+            ("Stand up from where you are.", 10),
+            ("Put on shoes or move to the workout spot.", 60),
+            ("Fill or pick up your water bottle.", 30),
+            ("Do one warm-up movement.", 30),
+            ("Do one set, one stretch, or one minute of movement.", 60),
+            ("Decide whether to continue or call that enough.", 10),
+        ]
+
+    return [
+        (f'Open a note and type: "{label}".', 15),
+        ("Underline one word in that sentence that points to a real place, person, or object.", 20),
+        ("Open or move that place, person, object, page, or tab into view.", 30),
+        ("Look at it for ten seconds without solving it yet.", 10),
+        ("Write the first touch, click, or move available from here.", 20),
+        ("Make that touch, click, or move for twenty seconds.", 20),
+    ]
+
+
+def _tiny_entry_action_for_task(task: str) -> str:
+    return _fallback_steps_for_task(task)[0][0]
+
+
+def _support_message_for_task(task: str, label: str) -> str:
+    text = task.lower()
+    if _contains_any(text, ("email", "message", "reply", "inbox", "dm", "whatsapp")):
+        return f'For "{label}", the reply only has to become visible before it becomes polished.'
+    if _contains_any(text, ("clean", "tidy", "room", "flat", "house", "desk", "kitchen")):
+        return f'For "{label}", change one visible patch instead of taking on the whole space.'
+    if _contains_any(text, ("tax", "form", "admin", "paperwork", "application")):
+        return f'For "{label}", find one document or missing answer before solving the whole admin job.'
+    if _contains_any(text, ("write", "essay", "report", "proposal", "draft", "blog")):
+        return f'For "{label}", make one rough sentence exist before asking it to be good.'
+    if _contains_any(text, ("call", "phone", "ring", "appointment", "book")):
+        return f'For "{label}", put the number, contact, or booking page in front of you first.'
+    if _contains_any(text, ("laundry", "washing", "clothes")):
+        return f'For "{label}", move one piece of laundry before sorting the whole pile.'
+    if _contains_any(text, ("dishes", "washing up", "plates", "sink")):
+        return f'For "{label}", one dish counts as a real start.'
+    if _contains_any(text, ("study", "revise", "revision", "learn", "course", "homework")):
+        return f'For "{label}", use one heading, question, or example as the entry point.'
+    if _contains_any(text, ("workout", "exercise", "gym", "run", "walk")):
+        return f'For "{label}", one warm-up movement is enough to open the door.'
+    return f'For "{label}", make the task visible before trying to solve it.'
+
+
 def has_ai_provider() -> bool:
     return bool(os.getenv("DEEPSEEK_API_KEY") or os.getenv("OPENAI_API_KEY"))
 
@@ -134,6 +281,13 @@ def _get_ai_client_and_model(
     raise RuntimeError(
         "No AI provider configured. Set DEEPSEEK_API_KEY or OPENAI_API_KEY."
     )
+
+
+def _provider_request_options(provider: str) -> dict:
+    """Provider-specific request options for predictable short JSON output."""
+    if provider == "deepseek":
+        return {"extra_body": {"thinking": {"type": "disabled"}}}
+    return {}
 
 
 SYSTEM_PROMPT = """You are an ADHD executive function coach. Your job is to break down a task 
@@ -263,7 +417,7 @@ def breakdown_task(
     if not task or not task.strip():
         raise ValueError("Task description cannot be empty")
 
-    client, model, _provider = _get_ai_client_and_model(client, model)
+    client, model, provider = _get_ai_client_and_model(client, model)
 
     try:
         response = client.chat.completions.create(
@@ -274,6 +428,7 @@ def breakdown_task(
             ],
             temperature=0.4,  # low temp for consistency
             max_tokens=500,
+            **_provider_request_options(provider),
         )
     except Exception as e:
         raise RuntimeError(f"OpenAI API call failed: {e}") from e
@@ -344,7 +499,7 @@ def create_unclump_session_plan(
     if not task or not task.strip():
         raise ValueError("Task description cannot be empty")
 
-    client, model, _provider = _get_ai_client_and_model(client, model)
+    client, model, provider = _get_ai_client_and_model(client, model)
 
     context = context or {}
     context_lines = [
@@ -363,6 +518,7 @@ def create_unclump_session_plan(
             ],
             temperature=0.35,
             max_tokens=800,
+            **_provider_request_options(provider),
         )
     except Exception as e:
         raise RuntimeError(f"OpenAI API call failed: {e}") from e
@@ -432,8 +588,8 @@ def create_unclump_session_plan_fallback(
     """Heuristic session plan when AI is unavailable."""
     context = context or {}
     block_type = _guess_block_type(task, context)
-    breakdown = breakdown_task_fallback(task)
-    task_lower = task.lower()
+    task_steps = _fallback_steps_for_task(task)
+    label = _clean_task_label(task, 70)
 
     support_note = {
         "overwhelm": "This lowers the size of the task until your brain has a doorway in.",
@@ -448,37 +604,28 @@ def create_unclump_session_plan_fallback(
     if block_type == "low_energy":
         first_steps = [
             ("Put both feet on the floor.", 10),
-            ("Take one slow breath.", 10),
-            ("Open the place where this task lives.", 20),
+            (f'Take one slow breath while keeping "{label}" as the only task.', 10),
+            task_steps[0],
         ]
     elif block_type == "unclear_next_step":
         first_steps = [
-            ("Open a blank note or the relevant app.", 15),
-            ("Write one messy sentence about what needs to happen.", 30),
-            ("Circle or copy the first visible action word.", 20),
+            (f'Open a note and type: "{label}".', 15),
+            ("Underline one word in that sentence that points to a real place, person, or object.", 20),
+            ("Open or move that place, person, object, page, or tab into view.", 30),
         ]
     elif block_type == "shame":
         first_steps = [
-            ("Put one hand on the object or app connected to this task.", 10),
+            (f'Open or touch the place where "{label}" lives.', 10),
             ("Say: this is allowed to be messy.", 10),
-            ("Do one visible action for ten seconds.", 10),
-        ]
-    elif "email" in task_lower or "message" in task_lower or "reply" in task_lower:
-        first_steps = [
-            ("Open the message without replying yet.", 15),
-            ("Read only the first two lines.", 20),
-            ("Type one rough sentence in the reply box.", 45),
+            task_steps[0],
         ]
     else:
-        first_steps = [
-            (breakdown.micro_steps[0].description, min(30, breakdown.micro_steps[0].estimated_seconds)),
-            ("Pause and notice that the task has started.", 10),
-            ("Do the next visible action for thirty seconds.", 30),
-        ]
+        first_steps = task_steps[:3]
 
     remaining = [
-        (step.description, step.estimated_seconds)
-        for step in breakdown.micro_steps[1:]
+        step
+        for step in task_steps
+        if step not in first_steps
     ]
     combined_steps = (first_steps + remaining)[:6]
     micro_steps = [
@@ -498,7 +645,7 @@ def create_unclump_session_plan_fallback(
         block_label=VALID_BLOCK_TYPES[block_type],
         block_reason=_fallback_block_reason(block_type),
         confidence=0.55,
-        entry_hook="No whole task right now. Only the next tiny movement.",
+        entry_hook=f'No whole task right now. Only the first doorway into "{label}".',
         reflection_prompt="Which step felt easiest to start, even a little?",
         micro_steps=micro_steps,
     )
@@ -513,7 +660,7 @@ def create_adaptive_step(
     model: str | None = None,
 ) -> dict:
     """Create a replacement step after the user says the current one is stuck."""
-    client, model, _provider = _get_ai_client_and_model(client, model)
+    client, model, provider = _get_ai_client_and_model(client, model)
 
     prompt = {
         "task": task,
@@ -531,6 +678,7 @@ def create_adaptive_step(
             ],
             temperature=0.35,
             max_tokens=300,
+            **_provider_request_options(provider),
         )
     except Exception as e:
         raise RuntimeError(f"OpenAI API call failed: {e}") from e
@@ -586,7 +734,7 @@ def create_adaptive_step_fallback(
         elif "write" in task_lower or "essay" in task_lower or "report" in task_lower:
             description = "Open a blank note and type one rough word."
         else:
-            description = "Name the next visible action out loud."
+            description = _tiny_entry_action_for_task(task)
         support_note = "This lowers the demand to one concrete point of contact."
         estimated_seconds = 10
     elif feedback == "distracted":
@@ -597,11 +745,12 @@ def create_adaptive_step_fallback(
         if "email" in task_lower or "message" in task_lower or "reply" in task_lower:
             description = "Open the message and read the sender's name."
         else:
-            description = "Name one object, app, or page connected to this task."
+            description = _tiny_entry_action_for_task(task)
         support_note = "Changing direction is allowed; the goal is to find a truer entry point."
         estimated_seconds = 15
     else:
-        description = "Do the smallest visible part of the current step for ten seconds."
+        current_description = str(current_step.get("description") or _tiny_entry_action_for_task(task))
+        description = f"Spend ten seconds on this exact step: {current_description}"
         support_note = "Ten seconds is enough to restart without turning this into a big demand."
         estimated_seconds = 10
 
@@ -626,7 +775,7 @@ def create_support_message(
     model: str | None = None,
 ) -> dict:
     """Create a contextual support, reminder, or nudge message."""
-    client, model, _provider = _get_ai_client_and_model(client, model)
+    client, model, provider = _get_ai_client_and_model(client, model)
     prompt = {
         "task": task,
         "current_step": current_step or {},
@@ -643,6 +792,7 @@ def create_support_message(
             ],
             temperature=0.45,
             max_tokens=220,
+            **_provider_request_options(provider),
         )
     except Exception as e:
         raise RuntimeError(f"AI support message failed: {e}") from e
@@ -689,18 +839,20 @@ def create_support_message_fallback(
     current_step = current_step or {}
     task_lower = task.lower()
     user_state = (user_state or "").lower()
+    label = _clean_task_label(task, 70)
+    message = _support_message_for_task(task, label)
 
     if "distracted" in user_state or moment == "distracted":
         return {
-            "message": "Attention wandered. That is information, not a verdict.",
-            "suggested_action": "Look away from the screen and take one slow breath.",
+            "message": f'Attention wandered from "{label}". That is information, not a verdict.',
+            "suggested_action": "Look away from the screen, take one slow breath, then put the task page or object back in view.",
             "reminder_after_minutes": 5,
             "tone": "gentle",
         }
     if "overwhelmed" in user_state or "too much" in user_state:
         return {
-            "message": "The task is asking for too much at once. Shrink the doorway.",
-            "suggested_action": "Do one visible part of it for ten seconds.",
+            "message": message,
+            "suggested_action": _tiny_entry_action_for_task(task),
             "reminder_after_minutes": 10,
             "tone": "gentle",
         }
@@ -709,10 +861,10 @@ def create_support_message_fallback(
     elif "clean" in task_lower or "tidy" in task_lower or "room" in task_lower:
         action = "Pick up one item you can see."
     else:
-        action = current_step.get("description") or "Name the next visible action."
+        action = current_step.get("description") or _tiny_entry_action_for_task(task)
 
     return {
-        "message": "You do not need the whole task. You only need the next small contact point.",
+        "message": message,
         "suggested_action": action,
         "reminder_after_minutes": 10,
         "tone": "gentle",
@@ -786,23 +938,7 @@ FALLBACK_TEMPLATES = {
 
 def breakdown_task_fallback(task: str) -> TaskBreakdown:
     """Template-based fallback when AI is unavailable."""
-    task_lower = task.lower()
-    best_match = None
-    for keyword, steps in FALLBACK_TEMPLATES.items():
-        if keyword in task_lower:
-            best_match = steps
-            break
-
-    if best_match is None:
-        # Generic fallback
-        best_match = [
-            ("Take one deep breath.", 10),
-            ("Name the first physical action needed.", 15),
-            ("Do that action now.", 30),
-            ("Notice: you've started. That's the hard part.", 10),
-            ("Decide your next move.", 30),
-            ("Keep going or stop. You've already won.", 10),
-        ]
+    best_match = _fallback_steps_for_task(task)
 
     micro_steps = [
         MicroStep(
