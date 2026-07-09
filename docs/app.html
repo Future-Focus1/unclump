@@ -1520,8 +1520,10 @@
             ];
         }
 
-        function supportNoteFor(blockType, isFirst) {
+        function supportNoteFor(blockType, isFirst, domain = 'general') {
             if (!isFirst) return 'Good. Keep moving while the route is visible.';
+            if (domain === 'finance') return 'Investing starts with setup, risk limits, and research, not a random stock pick.';
+            if (domain === 'driving') return 'Passing starts with instruction, practice, and a booked next step.';
             return {
                 overwhelm: 'This turns the mountain into the next visible grip.',
                 unclear_next_step: 'This gives the task a front door.',
@@ -1547,7 +1549,7 @@
                 step: index + 1,
                 description,
                 estimated_seconds: Math.max(15, Math.min(25 * 60, estimatedSeconds)),
-                support_note: supportNoteFor(blockType, index === 0),
+                support_note: supportNoteFor(blockType, index === 0, domain),
                 is_entry_point: index === 0
             }));
             return decorateSession({
@@ -1557,7 +1559,11 @@
                 block_type: blockType,
                 block_label: subtitleForTaskSize(taskSize),
                 block_reason: taskSize === 'large'
-                    ? 'This is not one task. We are creating the first useful checkpoint and saving progress.'
+                    ? domain === 'finance'
+                        ? 'This is a money setup task. First build the route, check risk, and stop before any rushed decision.'
+                        : domain === 'driving'
+                            ? 'This is a driving-test outcome. First build the instruction or practice route.'
+                            : 'This is not one task. We are creating the first useful checkpoint and saving progress.'
                     : taskSize === 'small'
                         ? 'This is smaller than the resistance around it. Use the route and move.'
                         : 'This can be handled in one session when the steps are concrete.',

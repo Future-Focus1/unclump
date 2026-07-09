@@ -1141,6 +1141,10 @@ def create_unclump_session_plan_fallback(
         "sensory": "Reduce the friction, then move.",
         "emotional": "Let the feeling ride along while the action starts.",
     }[block_type]
+    if task_domain == "finance":
+        support_note = "Investing starts with setup, risk limits, and research, not a random stock pick."
+    elif task_domain == "driving":
+        support_note = "Passing starts with instruction, practice, and a booked next step."
 
     if task_size == "small":
         combined_steps = task_steps[:3]
@@ -1212,7 +1216,13 @@ def create_unclump_session_plan_fallback(
         original_task=task,
         block_type=block_type,
         block_label=_subtitle_for_task_size(task_size),
-        block_reason=_fallback_block_reason(block_type),
+        block_reason=(
+            "This is a money setup task. First build the route, check risk, and stop before any rushed decision."
+            if task_domain == "finance"
+            else "This is a driving-test outcome. First build the instruction or practice route."
+            if task_domain == "driving"
+            else _fallback_block_reason(block_type)
+        ),
         confidence=0.55,
         entry_hook=f'No waiting for perfect motivation. Move "{label}" one step forward.',
         reflection_prompt="What moved this forward?",
