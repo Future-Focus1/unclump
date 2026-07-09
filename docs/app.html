@@ -321,6 +321,16 @@
             font-size: 0.78rem;
             line-height: 1.4;
         }
+        .session-safety {
+            margin-top: 0.75rem;
+            padding: 0.75rem 0.9rem;
+            border-radius: 12px;
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            color: #7c2d12;
+            font-size: 0.78rem;
+            line-height: 1.4;
+        }
 
         .step-card {
             background: var(--surface);
@@ -932,6 +942,7 @@
                     </div>
                     <button class="btn-sm" onclick="shareTask()" id="shareBtn">Share</button>
                 </div>
+                <div class="session-safety hidden" id="sessionSafety"></div>
                 <div style="text-align:center;margin-top:0.75rem;">
                     <button class="btn btn-secondary" onclick="goBack()" style="border:none;background:transparent;font-size:0.82rem;color:var(--text-tertiary);">
                         ← Try a different task
@@ -958,6 +969,12 @@
                 </div>
                 <button class="btn btn-primary" onclick="resetApp()" style="margin-top:0.5rem;">
                     Unclump something else
+                </button>
+                <button class="btn btn-secondary hidden" id="continueSessionBtn" onclick="continueCurrentTask()" style="margin-top:0.5rem;">
+                    Continue now
+                </button>
+                <button class="btn btn-secondary hidden" id="saveProgressBtn" onclick="saveProgressAndReturn()" style="margin-top:0.5rem;">
+                    Save progress
                 </button>
                 <button class="btn btn-secondary" onclick="showDoubling()" style="margin-top:0.5rem;">
                     👥 Start a coworking session
@@ -1186,21 +1203,63 @@
             return terms.some(term => text.includes(term));
         }
 
+        function taskDomain(task, contextText = '') {
+            const text = `${task} ${contextText}`.toLowerCase();
+            if (includesAny(text, [
+                'invest', 'investment', 'stock', 'stocks', 'stock market', 'shares',
+                'trading', 'broker', 'brokerage', 'stocks and shares isa', 'pension', 'crypto',
+                'money', 'savings', 'budget', 'debt'
+            ])) return 'finance';
+            if (includesAny(text, [
+                'driving test', 'theory test', 'practical test', 'driving school',
+                'driving instructor', 'driving lesson', 'learner driver', 'licence',
+                'license', 'pass my driving', 'pass driving'
+            ])) return 'driving';
+            if (includesAny(text, ['email', 'message', 'reply', 'inbox', 'dm', 'whatsapp'])) return 'communication';
+            if (includesAny(text, ['clean', 'tidy', 'room', 'flat', 'house', 'desk', 'kitchen'])) return 'home';
+            if (includesAny(text, ['study', 'revise', 'revision', 'exam', 'homework', 'course'])) return 'study';
+            if (includesAny(text, ['tax', 'form', 'admin', 'paperwork', 'application'])) return 'admin';
+            return 'general';
+        }
+
+        function taskIntent(task, domain, contextText = '') {
+            const text = `${task} ${contextText}`.toLowerCase();
+            if (domain === 'finance') return 'finance_setup';
+            if (domain === 'driving') {
+                if (includesAny(text, ['tomorrow', 'today', 'test day', 'this morning', 'this afternoon'])) return 'test_day_prep';
+                if (includesAny(text, ['book', 'booking', 'schedule', 'find driving school', 'find instructor'])) return 'admin_booking';
+                return 'outcome_goal';
+            }
+            if (domain === 'home') return 'physical_environment';
+            if (domain === 'communication') return 'communication';
+            if (includesAny(text, ['pass', 'get', 'become', 'learn', 'finish', 'achieve'])) return 'outcome_goal';
+            if (includesAny(text, ['research', 'find', 'search', 'compare'])) return 'research_setup';
+            return 'immediate_action';
+        }
+
         function classifyTaskSize(task, contextText = '') {
             const text = `${task} ${contextText}`.toLowerCase();
+            const domain = taskDomain(task, contextText);
+            const intent = taskIntent(task, domain, contextText);
             if (includesAny(text, [
                 'start a company', 'start company', 'start a business', 'launch a business',
                 'build a business', 'write a book', 'move house', 'change career',
                 'get a degree', 'build an app', 'launch a product', 'plan a wedding',
                 'renovate', 'sort my life'
             ])) return 'large';
+            if (domain === 'finance') return 'large';
+            if (domain === 'driving' && ['outcome_goal', 'admin_booking'].includes(intent)) return 'large';
+            if (domain === 'driving' && intent === 'test_day_prep') return 'medium';
             if (includesAny(text, [
                 'leave the house', 'go outside', 'get out the door', 'take the bins out',
                 'take out the bin', 'brush teeth', 'brush my teeth', 'shower',
                 'get dressed', 'put shoes on', 'stand up', 'drink water'
             ])) return 'small';
             const words = task.toLowerCase().match(/\w+/g) || [];
-            if (words.length <= 4 && !includesAny(text, ['project', 'business', 'company', 'tax', 'essay', 'report', 'application'])) {
+            if (words.length <= 4 && includesAny(text, [
+                'bin', 'bins', 'dish', 'dishes', 'laundry', 'shoes', 'keys',
+                'bag', 'stand', 'walk', 'drink', 'shower', 'dress'
+            ])) {
                 return 'small';
             }
             return 'medium';
@@ -1218,16 +1277,29 @@
                     : 'one_session_steps';
         }
 
-        function sessionGoalForTask(task, size) {
+        function sessionGoalForTask(task, size, domain = taskDomain(task), intent = taskIntent(task, domain)) {
             const label = taskLabel(task, 70);
+            if (domain === 'finance') return 'Choose a credible investment platform or move the account setup one step forward.';
+            if (domain === 'driving' && intent === 'test_day_prep') return 'Get ready for the driving test without a last-minute panic spiral.';
+            if (domain === 'driving') return 'Find or contact a driving instructor, school, or mock-test option.';
             if (size === 'small') return `Finish the immediate task: ${label}.`;
             if (size === 'large') return `Create the first saved checkpoint for ${label}.`;
             return `Move ${label} from stuck to visibly underway.`;
         }
 
-        function stoppingPointForTask(task, size) {
+        function stoppingPointForTask(task, size, domain = taskDomain(task), intent = taskIntent(task, domain)) {
+            if (domain === 'finance') return 'Stop when a regulated platform is chosen, account setup is started, or the next investment research step is saved.';
+            if (domain === 'driving' && intent === 'test_day_prep') return 'Stop when the documents, travel time, and test-day essentials are checked.';
+            if (domain === 'driving') return 'Stop when one instructor, school, or mock-test option is chosen or contacted.';
             if (size !== 'large') return null;
             return 'Stop when the first project note is saved and the next concrete action is named.';
+        }
+
+        function safetyNoteForTask(task, domain = taskDomain(task)) {
+            if (domain === 'finance') {
+                return 'Do not invest more than you can afford to lose. Check fees, risks, and regulation before putting money in. Not financial advice.';
+            }
+            return null;
         }
 
         function tinyEntryActionForText(task) {
@@ -1266,9 +1338,66 @@
             return 'overwhelm';
         }
 
-        function baseStepsFor(task, blockType, taskSize = classifyTaskSize(task)) {
+        function financeStepsFor(progressText = '') {
+            const progress = progressText.toLowerCase();
+            if (includesAny(progress, ['account started', 'created account', 'signup', 'platform chosen', 'broker chosen'])) {
+                return [
+                    ['Get to a device with internet and open the investment platform you chose last time.', 120],
+                    ['Log in and find the section for investments, funds, shares, or watchlists.', 180],
+                    ['Decide the maximum amount you can afford to risk without harming bills, rent, food, or emergency money.', 240],
+                    ['Choose one investment to research, not buy on impulse. A broad fund is usually calmer to learn from than a random single stock.', 300],
+                    ['Read the fees, risk rating, and basic description before doing anything with money.', 300],
+                    ['Stop before confirming a purchase unless you are calm, informed, and comfortable with the risk.', 60]
+                ];
+            }
+            return [
+                ['Get to a device with internet.', 60],
+                ['Search for regulated beginner-friendly investment platforms or brokers available in your country.', 240],
+                ['Open two credible results and check regulation, fees, minimum deposit, and account type.', 420],
+                ['Pick one platform to inspect properly. No perfect choice needed today; credible and regulated is the bar.', 180],
+                ['Start creating the account, or stop at the signup page with the platform name saved.', 420],
+                ['Stop here: platform chosen or account setup started. That is real progress.', 60]
+            ];
+        }
+
+        function drivingStepsFor(task, intent, progressText = '') {
+            const text = `${task} ${progressText}`.toLowerCase();
+            if (intent === 'test_day_prep') {
+                return [
+                    ['Check the test time, location, and what documents or licence you need.', 180],
+                    ['Put your licence, glasses if needed, keys, and anything required in one place.', 180],
+                    ['Check how long it takes to get there and choose your leave time.', 180],
+                    ['Do a short calm recap: mirrors, observations, speed, signals, and breathing.', 240],
+                    ['Stop cramming. The job now is to arrive steady and on time.', 60]
+                ];
+            }
+            if (includesAny(text, ['test booked', 'lesson booked', 'instructor contacted', 'school contacted', 'driving school chosen'])) {
+                return [
+                    ['Get to a device with internet or your messages.', 60],
+                    ['Open the instructor, school, or booking details you saved last time.', 120],
+                    ['Choose the next prep focus: manoeuvres, roundabouts, observations, nerves, or theory.', 180],
+                    ['Book a lesson, mock test, or practice block for that focus.', 300],
+                    ['Save the date, time, and focus area where you will see it.', 120],
+                    ['Stop here: next driving prep is scheduled or clearly named.', 60]
+                ];
+            }
+            return [
+                ['Get to a device with internet.', 60],
+                ['Search for local driving schools, licensed instructors, or mock driving tests near you.', 240],
+                ['Open two or three credible options and check reviews, prices, availability, and whether they offer test prep.', 420],
+                ['Pick one option to contact first.', 120],
+                ['Send a message, call, or save the booking/contact page.', 300],
+                ['Stop here: one instructor, school, or mock-test option is chosen or contacted.', 60]
+            ];
+        }
+
+        function baseStepsFor(task, blockType, taskSize = classifyTaskSize(task), contextText = '') {
             const text = task.toLowerCase();
             const label = taskLabel(task);
+            const domain = taskDomain(task, contextText);
+            const intent = taskIntent(task, domain, contextText);
+            if (domain === 'finance') return financeStepsFor(contextText);
+            if (domain === 'driving') return drivingStepsFor(task, intent, contextText);
             if (taskSize === 'large') {
                 if (includesAny(text, ['company', 'business', 'startup', 'product'])) {
                     return [
@@ -1406,12 +1535,15 @@
 
         function startBrowserTrialSession(task, context = {}) {
             const contextText = [context.prior_progress, context.previous_stopping_point, context.recent_friction].filter(Boolean).join(' ');
+            const domain = taskDomain(task, contextText);
+            const intent = taskIntent(task, domain, contextText);
             const taskSize = classifyTaskSize(task, contextText);
             const blockType = taskSize === 'small' ? 'unclear_next_step' : guessBlockType(task);
             const planningMode = planningModeForTaskSize(taskSize);
-            const sessionGoal = sessionGoalForTask(task, taskSize);
-            const stoppingPoint = stoppingPointForTask(task, taskSize);
-            const microSteps = baseStepsFor(task, blockType, taskSize).slice(0, taskSize === 'small' ? 3 : 6).map(([description, estimatedSeconds], index) => ({
+            const sessionGoal = sessionGoalForTask(task, taskSize, domain, intent);
+            const stoppingPoint = stoppingPointForTask(task, taskSize, domain, intent);
+            const safetyNote = safetyNoteForTask(task, domain);
+            const microSteps = baseStepsFor(task, blockType, taskSize, contextText).slice(0, taskSize === 'small' ? 3 : 6).map(([description, estimatedSeconds], index) => ({
                 step: index + 1,
                 description,
                 estimated_seconds: Math.max(15, Math.min(25 * 60, estimatedSeconds)),
@@ -1431,15 +1563,20 @@
                         : 'This can be handled in one session when the steps are concrete.',
                 task_size: taskSize,
                 planning_mode: planningMode,
+                task_intent: intent,
+                task_domain: domain,
                 session_goal: sessionGoal,
                 stopping_point: stoppingPoint,
+                safety_note: safetyNote,
                 progress_notes: [
                     `Task classified as ${taskSize}.`,
+                    `Domain: ${domain}.`,
+                    `Intent: ${intent}.`,
                     sessionGoal,
                     ...(context.prior_progress ? [`Previous progress: ${context.prior_progress}`] : [])
                 ],
                 next_session_prompt: taskSize === 'large'
-                    ? `Review the saved notes for "${taskLabel(task, 70)}" and continue from the named next action.`
+                    ? `Review the saved progress for "${taskLabel(task, 70)}" and continue from the named next action.`
                     : null,
                 entry_hook: `No waiting for perfect motivation. Move "${taskLabel(task, 70)}" one step forward.`,
                 reflection_prompt: 'What moved this forward?',
@@ -1490,10 +1627,13 @@
             currentSession.total_steps = currentSession.micro_steps.length;
             currentSession.task_size = replanned.task_size;
             currentSession.planning_mode = replanned.planning_mode;
+            currentSession.task_intent = replanned.task_intent;
+            currentSession.task_domain = replanned.task_domain;
             currentSession.block_label = replanned.block_label;
             currentSession.block_reason = replanned.block_reason;
             currentSession.session_goal = replanned.session_goal;
             currentSession.stopping_point = replanned.stopping_point;
+            currentSession.safety_note = replanned.safety_note;
             currentSession.next_session_prompt = replanned.next_session_prompt;
             currentSession.progress_notes = (currentSession.progress_notes || []).concat('Replanned the remaining route into smaller moves.');
             currentSession.nudge = 'Smaller route loaded. Same mission.';
@@ -1645,8 +1785,11 @@
                 status,
                 planning_mode: currentSession.planning_mode,
                 task_size: currentSession.task_size,
+                task_intent: currentSession.task_intent,
+                task_domain: currentSession.task_domain,
                 session_goal: currentSession.session_goal,
                 stopping_point: currentSession.stopping_point,
+                safety_note: currentSession.safety_note,
                 next_session_prompt: currentSession.next_session_prompt,
                 progress_notes: currentSession.progress_notes || [],
                 session: currentSession,
@@ -1845,6 +1988,13 @@
                 stopEl.classList.remove('hidden');
             } else {
                 stopEl.classList.add('hidden');
+            }
+            const safetyEl = document.getElementById('sessionSafety');
+            if (currentSession.safety_note) {
+                safetyEl.textContent = currentSession.safety_note;
+                safetyEl.classList.remove('hidden');
+            } else {
+                safetyEl.classList.add('hidden');
             }
             document.getElementById('stepBadge').textContent = `Step ${step.step} of ${currentSession.total_steps}`;
             document.getElementById('stepDescription').textContent = step.description;
@@ -2048,11 +2198,45 @@
             } else {
                 document.querySelector('#doneScreen p').textContent = "One step at a time. That's all it takes.";
             }
+            const canContinue = currentSession && (
+                currentSession.planning_mode === 'multi_session_project'
+                || currentSession.stopping_point
+                || currentSession.next_session_prompt
+            );
+            document.getElementById('continueSessionBtn').classList.toggle('hidden', !canContinue);
+            document.getElementById('saveProgressBtn').classList.toggle('hidden', !canContinue);
+        }
+
+        function findThreadById(id) {
+            if (!id) return null;
+            return loadTaskThreads().find(thread => thread.id === id) || null;
+        }
+
+        function continueCurrentTask() {
+            if (!currentSession) return;
+            saveCurrentSessionProgress();
+            const thread = findThreadById(currentSession.task_thread_id || currentSession.session_id) || {
+                id: currentSession.task_thread_id || currentSession.session_id,
+                canonical_task: currentSession.original_task,
+                progress_notes: currentSession.progress_notes || [],
+                stopping_point: currentSession.stopping_point,
+                next_session_prompt: currentSession.next_session_prompt
+            };
+            document.getElementById('taskInput').value = currentSession.original_task;
+            unclump({ skipResume: true, resumeThread: thread });
+        }
+
+        function saveProgressAndReturn() {
+            saveCurrentSessionProgress();
+            toast('Progress saved. Pick it up later.');
+            resetApp();
         }
 
         function resetApp() {
             currentSession = null;
             steps = []; currentStep = 0;
+            document.getElementById('continueSessionBtn').classList.add('hidden');
+            document.getElementById('saveProgressBtn').classList.add('hidden');
             document.getElementById('taskInput').value = '';
             show('inputScreen');
             document.getElementById('taskInput').focus();

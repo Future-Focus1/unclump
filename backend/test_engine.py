@@ -19,6 +19,7 @@ from engine import (
     TaskBreakdown,
     MicroStep,
     SYSTEM_PROMPT,
+    DEEPSEEK_MODEL,
 )
 
 
@@ -26,6 +27,7 @@ class TestParseResponse:
     """Unit tests for _parse_response — no API calls."""
 
     def test_provider_options_disable_deepseek_thinking(self):
+        assert DEEPSEEK_MODEL == "deepseek-v4-pro"
         assert _provider_request_options("deepseek") == {
             "extra_body": {"thinking": {"type": "disabled"}}
         }
@@ -296,6 +298,34 @@ class TestUnclumpSessionPlan:
         assert result.planning_mode == "multi_session_project"
         assert result.stopping_point
         assert any("business idea" in step.description.lower() for step in result.micro_steps)
+
+    def test_fallback_investing_is_finance_setup_with_disclaimer(self):
+        result = create_unclump_session_plan_fallback("invest in the stock market")
+        descriptions = " ".join(step.description.lower() for step in result.micro_steps)
+        assert result.task_size == "large"
+        assert result.task_domain == "finance"
+        assert result.task_intent == "finance_setup"
+        assert "device with internet" in descriptions
+        assert "regulated" in descriptions
+        assert "platform" in descriptions
+        assert result.safety_note
+        assert "not financial advice" in result.safety_note.lower()
+        assert "afford to lose" in result.safety_note.lower()
+        assert "open a note" not in descriptions
+        assert "circle one word" not in descriptions
+
+    def test_fallback_driving_test_is_practical_prep_route(self):
+        result = create_unclump_session_plan_fallback("pass my driving test")
+        descriptions = " ".join(step.description.lower() for step in result.micro_steps)
+        assert result.task_size == "large"
+        assert result.task_domain == "driving"
+        assert result.task_intent == "outcome_goal"
+        assert "device with internet" in descriptions
+        assert "driving schools" in descriptions
+        assert "instructors" in descriptions
+        assert result.stopping_point
+        assert "open a note" not in descriptions
+        assert "circle one word" not in descriptions
 
     def test_session_fallback_uses_task_context_for_unknown(self):
         result = create_unclump_session_plan_fallback(

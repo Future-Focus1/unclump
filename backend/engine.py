@@ -77,8 +77,11 @@ class UnclumpSessionPlan:
     reflection_prompt: str = ""
     task_size: str = "medium"
     planning_mode: str = "one_session_steps"
+    task_intent: str = "immediate_action"
+    task_domain: str = "general"
     session_goal: str = ""
     stopping_point: str | None = None
+    safety_note: str | None = None
     progress_notes: list[str] = field(default_factory=list)
     next_session_prompt: str | None = None
 
@@ -93,8 +96,11 @@ class UnclumpSessionPlan:
             "reflection_prompt": self.reflection_prompt,
             "task_size": self.task_size,
             "planning_mode": self.planning_mode,
+            "task_intent": self.task_intent,
+            "task_domain": self.task_domain,
             "session_goal": self.session_goal,
             "stopping_point": self.stopping_point,
+            "safety_note": self.safety_note,
             "progress_notes": self.progress_notes,
             "next_session_prompt": self.next_session_prompt,
             "micro_steps": [step.to_dict() for step in self.micro_steps],
@@ -130,7 +136,7 @@ MAX_SESSION_STEP_SECONDS = 25 * 60
 
 
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
-DEEPSEEK_MODEL = "deepseek-v4-flash"
+DEEPSEEK_MODEL = "deepseek-v4-pro"
 OPENAI_MODEL = "gpt-4o-mini"
 
 
@@ -350,26 +356,41 @@ Your job is to snap task paralysis into a realistic action route. Be warm, direc
 motivational, and practical. No shame. No therapy-speak. No babying. Help the user move.
 
 CRITICAL RULES:
-1. First classify the task size: small, medium, or large.
-2. Use exactly one of these subtitles:
+1. First interpret the user's real-world goal before planning steps.
+2. Classify task_intent as one of:
+   immediate_action, outcome_goal, research_setup, admin_booking, learning_prep,
+   test_day_prep, physical_environment, communication, finance_setup, large_project
+3. Classify task_domain as one of:
+   general, home, communication, admin, finance, driving, study, health, legal, work
+4. Then classify task_size: small, medium, or large.
+5. Use exactly one of these subtitles:
    - Piece of Cake - You've got this one.
    - Let's break it down - we can handle this in one go if we break it into smaller chunks.
    - Overwhelming - this may feel too large to do in one go, let's do it over multiple sessions together.
-3. Match planning_mode to task size:
+6. Match planning_mode to task size:
    - small: single_burst
    - medium: one_session_steps
    - large: multi_session_project
-4. Small tasks get 1-3 steps. Medium tasks get 3-6 steps. Large tasks get a first-session route with a clear stopping point.
-5. Steps must be concrete, observable actions. Avoid abstract planning fog.
-6. Use realistic timings. A real-world action can be 2-10 minutes. Do not make every step 30 seconds.
-7. estimated_seconds must be 15-1500.
-8. Never shame, scold, moralize, or use the words "just" or "simply".
-9. This is productivity support, not therapy or medical advice.
+7. Small tasks get 1-3 steps. Medium tasks get 3-6 steps. Large tasks get a first-session route with a clear stopping point.
+8. Steps must be concrete, observable, practical actions toward the real goal.
+9. Do not use generic placeholder steps like "write the task", "circle one word", or "bring that thing into view" unless the task genuinely is note-taking or writing.
+10. For outcome goals, translate the outcome into the next controllable session.
+11. Use realistic timings. A real-world action can be 2-10 minutes. Do not make every step 30 seconds.
+12. estimated_seconds must be 15-1500.
+13. Never shame, scold, moralize, or use the words "just" or "simply".
+14. This is productivity support, not therapy, medical, legal, or financial advice.
+15. For finance, investing, debt, tax, or money tasks:
+   - Include safety_note ending with "Not financial advice."
+   - Do not recommend a specific investment, stock, token, broker, or trade.
+   - Tell the user not to invest more than they can afford to lose.
+   - Focus on practical setup, research, risk limits, fees, and regulated platforms.
 
 Examples:
 - "leave the house" is small. Do not overcomplicate it.
 - "reply to a difficult email" is usually medium.
 - "start a company" is large. Do not pretend it can be finished in one session.
+- "pass my driving test" is an outcome goal in the driving domain. First session should help them find/book instruction, a mock test, or a practical prep step.
+- "invest in the stock market" is a finance_setup outcome. First session should get them to a device, find credible regulated platforms, inspect fees/risks, and stop at platform chosen/account started.
 
 Classify block_type as one of:
 overwhelm, unclear_next_step, shame, low_energy, avoidance, sensory, emotional
@@ -378,6 +399,8 @@ Respond with ONLY valid JSON in this exact shape:
 {
   "task_size": "small",
   "planning_mode": "single_burst",
+  "task_intent": "immediate_action",
+  "task_domain": "general",
   "block_type": "unclear_next_step",
   "block_label": "Piece of Cake - You've got this one.",
   "block_reason": "Direct, practical explanation of the route.",
@@ -385,6 +408,7 @@ Respond with ONLY valid JSON in this exact shape:
   "entry_hook": "Short motivating line. Direct, not coddling.",
   "session_goal": "What this session is trying to finish.",
   "stopping_point": null,
+  "safety_note": null,
   "progress_notes": ["One compact note worth saving."],
   "next_session_prompt": null,
   "reflection_prompt": "One short question to ask after the session.",
@@ -627,6 +651,83 @@ def _sanitize_planning_mode(value: str | None, task_size: str) -> str:
     return _planning_mode_for_task_size(task_size)
 
 
+def _progress_text(context: dict | None = None) -> str:
+    return " ".join(str(v).lower() for v in (context or {}).values() if v)
+
+
+def _guess_task_domain(task: str, context: dict | None = None) -> str:
+    combined = f"{task.lower()} {_progress_text(context)}"
+    if _contains_any(
+        combined,
+        (
+            "invest",
+            "investment",
+            "stock",
+            "stocks",
+            "stock market",
+            "shares",
+            "trading",
+            "broker",
+            "brokerage",
+            "stocks and shares isa",
+            "pension",
+            "crypto",
+            "money",
+            "savings",
+            "budget",
+            "debt",
+        ),
+    ):
+        return "finance"
+    if _contains_any(
+        combined,
+        (
+            "driving test",
+            "theory test",
+            "practical test",
+            "driving school",
+            "driving instructor",
+            "driving lesson",
+            "learner driver",
+            "licence",
+            "license",
+            "pass my driving",
+            "pass driving",
+        ),
+    ):
+        return "driving"
+    if _contains_any(combined, ("email", "message", "reply", "inbox", "dm", "whatsapp")):
+        return "communication"
+    if _contains_any(combined, ("clean", "tidy", "room", "flat", "house", "desk", "kitchen")):
+        return "home"
+    if _contains_any(combined, ("study", "revise", "revision", "exam", "homework", "course")):
+        return "study"
+    if _contains_any(combined, ("tax", "form", "admin", "paperwork", "application")):
+        return "admin"
+    return "general"
+
+
+def _guess_task_intent(task: str, task_domain: str, context: dict | None = None) -> str:
+    combined = f"{task.lower()} {_progress_text(context)}"
+    if task_domain == "finance":
+        return "finance_setup"
+    if task_domain == "driving":
+        if _contains_any(combined, ("tomorrow", "today", "test day", "this morning", "this afternoon")):
+            return "test_day_prep"
+        if _contains_any(combined, ("book", "booking", "schedule", "find driving school", "find instructor")):
+            return "admin_booking"
+        return "outcome_goal"
+    if task_domain == "home":
+        return "physical_environment"
+    if task_domain == "communication":
+        return "communication"
+    if _contains_any(combined, ("pass", "get", "become", "learn", "finish", "achieve")):
+        return "outcome_goal"
+    if _contains_any(combined, ("research", "find", "search", "compare")):
+        return "research_setup"
+    return "immediate_action"
+
+
 def _compact_text_list(value: object, fallback: list[str] | None = None) -> list[str]:
     if not isinstance(value, list):
         return fallback or []
@@ -664,6 +765,9 @@ def _parse_session_response(task: str, raw: str) -> UnclumpSessionPlan:
     task_size = _normalize_task_size(data.get("task_size"))
     planning_mode = _sanitize_planning_mode(data.get("planning_mode"), task_size)
     subtitle = _subtitle_for_task_size(task_size)
+    task_domain = str(data.get("task_domain") or _guess_task_domain(task)).strip().lower()
+    task_intent = str(data.get("task_intent") or _guess_task_intent(task, task_domain)).strip().lower()
+    safety_note = str(data.get("safety_note") or "").strip() or None
 
     steps = []
     for i, step_data in enumerate(data["micro_steps"][:6], 1):
@@ -695,12 +799,15 @@ def _parse_session_response(task: str, raw: str) -> UnclumpSessionPlan:
         micro_steps=steps,
         task_size=task_size,
         planning_mode=planning_mode,
+        task_intent=task_intent,
+        task_domain=task_domain,
         session_goal=str(data.get("session_goal") or f"Move {task} forward."),
         stopping_point=(
             str(data.get("stopping_point")).strip()
             if data.get("stopping_point") not in {None, ""}
             else None
         ),
+        safety_note=safety_note,
         progress_notes=_compact_text_list(data.get("progress_notes")),
         next_session_prompt=(
             str(data.get("next_session_prompt")).strip()
@@ -712,8 +819,10 @@ def _parse_session_response(task: str, raw: str) -> UnclumpSessionPlan:
 
 def _guess_task_size(task: str, context: dict | None = None) -> str:
     text = task.lower()
-    context_text = " ".join(str(v).lower() for v in (context or {}).values() if v)
+    context_text = _progress_text(context)
     combined = f"{text} {context_text}"
+    task_domain = _guess_task_domain(task, context)
+    task_intent = _guess_task_intent(task, task_domain, context)
 
     if _contains_any(
         combined,
@@ -736,6 +845,15 @@ def _guess_task_size(task: str, context: dict | None = None) -> str:
     ):
         return "large"
 
+    if task_domain == "finance":
+        return "large"
+
+    if task_domain == "driving" and task_intent in {"outcome_goal", "admin_booking"}:
+        return "large"
+
+    if task_domain == "driving" and task_intent == "test_day_prep":
+        return "medium"
+
     if _contains_any(
         combined,
         (
@@ -755,18 +873,94 @@ def _guess_task_size(task: str, context: dict | None = None) -> str:
     ):
         return "small"
 
-    if len(re.findall(r"\w+", text)) <= 4 and not _contains_any(
+    if len(re.findall(r"\w+", text)) <= 4 and _contains_any(
         combined,
-        ("project", "business", "company", "tax", "essay", "report", "application"),
+        (
+            "bin",
+            "bins",
+            "dish",
+            "dishes",
+            "laundry",
+            "shoes",
+            "keys",
+            "bag",
+            "stand",
+            "walk",
+            "drink",
+            "shower",
+            "dress",
+        ),
     ):
         return "small"
 
     return "medium"
 
 
-def _session_steps_for_task(task: str, task_size: str) -> list[tuple[str, int]]:
+def _finance_session_steps(task: str, progress: str) -> list[tuple[str, int]]:
+    if _contains_any(progress, ("account started", "created account", "signup", "platform chosen", "broker chosen")):
+        return [
+            ("Get to a device with internet and open the investment platform you chose last time.", 120),
+            ("Log in and find the section for investments, funds, shares, or watchlists.", 180),
+            ("Decide the maximum amount you can afford to risk without harming bills, rent, food, or emergency money.", 240),
+            ("Choose one investment to research, not buy on impulse. A broad fund is usually a calmer place to learn than a random single stock.", 300),
+            ("Read the fees, risk rating, and basic description before doing anything with money.", 300),
+            ("Stop before confirming a purchase unless you are calm, informed, and comfortable with the risk.", 60),
+        ]
+    return [
+        ("Get to a device with internet.", 60),
+        ("Search for regulated beginner-friendly investment platforms or brokers available in your country.", 240),
+        ("Open two credible results and check regulation, fees, minimum deposit, and account type.", 420),
+        ("Pick one platform to inspect properly. No perfect choice needed today; credible and regulated is the bar.", 180),
+        ("Start creating the account, or stop at the signup page with the platform name saved.", 420),
+        ("Stop here: platform chosen or account setup started. That is real progress.", 60),
+    ]
+
+
+def _driving_session_steps(task: str, intent: str, progress: str) -> list[tuple[str, int]]:
+    text = f"{task.lower()} {progress}"
+    if intent == "test_day_prep":
+        return [
+            ("Check the test time, location, and what documents or licence you need.", 180),
+            ("Put your licence, glasses if needed, keys, and anything required in one place.", 180),
+            ("Check how long it takes to get there and choose your leave time.", 180),
+            ("Do a short calm recap: mirrors, observations, speed, signals, and breathing.", 240),
+            ("Stop cramming. The job now is to arrive steady and on time.", 60),
+        ]
+    if _contains_any(text, ("test booked", "lesson booked", "instructor contacted", "school contacted", "driving school chosen")):
+        return [
+            ("Get to a device with internet or your messages.", 60),
+            ("Open the instructor, school, or booking details you saved last time.", 120),
+            ("Choose the next prep focus: manoeuvres, roundabouts, observations, nerves, or theory.", 180),
+            ("Book a lesson, mock test, or practice block for that focus.", 300),
+            ("Save the date, time, and focus area where you will see it.", 120),
+            ("Stop here: next driving prep is scheduled or clearly named.", 60),
+        ]
+    return [
+        ("Get to a device with internet.", 60),
+        ("Search for local driving schools, licensed instructors, or mock driving tests near you.", 240),
+        ("Open two or three credible options and check reviews, prices, availability, and whether they offer test prep.", 420),
+        ("Pick one option to contact first.", 120),
+        ("Send a message, call, or save the booking/contact page.", 300),
+        ("Stop here: one instructor, school, or mock-test option is chosen or contacted.", 60),
+    ]
+
+
+def _session_steps_for_task(
+    task: str,
+    task_size: str,
+    context: dict | None = None,
+) -> list[tuple[str, int]]:
     text = task.lower()
     label = _clean_task_label(task)
+    progress = _progress_text(context)
+    task_domain = _guess_task_domain(task, context)
+    task_intent = _guess_task_intent(task, task_domain, context)
+
+    if task_domain == "finance":
+        return _finance_session_steps(task, progress)
+
+    if task_domain == "driving":
+        return _driving_session_steps(task, task_intent, progress)
 
     if task_size == "large":
         if _contains_any(text, ("company", "business", "startup", "product")):
@@ -879,8 +1073,19 @@ def _session_steps_for_task(task: str, task_size: str) -> list[tuple[str, int]]:
     ]
 
 
-def _fallback_session_goal(task: str, task_size: str) -> str:
+def _fallback_session_goal(
+    task: str,
+    task_size: str,
+    task_domain: str = "general",
+    task_intent: str = "immediate_action",
+) -> str:
     label = _clean_task_label(task, 70)
+    if task_domain == "finance":
+        return "Choose a credible investment platform or move the account setup one step forward."
+    if task_domain == "driving" and task_intent == "test_day_prep":
+        return "Get ready for the driving test without a last-minute panic spiral."
+    if task_domain == "driving":
+        return "Find or contact a driving instructor, school, or mock-test option."
     if task_size == "small":
         return f"Finish the immediate task: {label}."
     if task_size == "large":
@@ -888,10 +1093,27 @@ def _fallback_session_goal(task: str, task_size: str) -> str:
     return f"Move {label} from stuck to visibly underway."
 
 
-def _fallback_stopping_point(task: str, task_size: str) -> str | None:
+def _fallback_stopping_point(
+    task: str,
+    task_size: str,
+    task_domain: str = "general",
+    task_intent: str = "immediate_action",
+) -> str | None:
+    if task_domain == "finance":
+        return "Stop when a regulated platform is chosen, account setup is started, or the next investment research step is saved."
+    if task_domain == "driving" and task_intent == "test_day_prep":
+        return "Stop when the documents, travel time, and test-day essentials are checked."
+    if task_domain == "driving":
+        return "Stop when one instructor, school, or mock-test option is chosen or contacted."
     if task_size != "large":
         return None
     return "Stop when the first project note is saved and the next concrete action is named."
+
+
+def _fallback_safety_note(task_domain: str) -> str | None:
+    if task_domain == "finance":
+        return "Do not invest more than you can afford to lose. Check fees, risks, and regulation before putting money in. Not financial advice."
+    return None
 
 
 def create_unclump_session_plan_fallback(
@@ -902,10 +1124,12 @@ def create_unclump_session_plan_fallback(
     context = context or {}
     task_size = _guess_task_size(task, context)
     planning_mode = _planning_mode_for_task_size(task_size)
+    task_domain = _guess_task_domain(task, context)
+    task_intent = _guess_task_intent(task, task_domain, context)
     block_type = _guess_block_type(task, context)
     if task_size == "small":
         block_type = "unclear_next_step"
-    task_steps = _session_steps_for_task(task, task_size)
+    task_steps = _session_steps_for_task(task, task_size, context)
     label = _clean_task_label(task, 70)
 
     support_note = {
@@ -972,10 +1196,14 @@ def create_unclump_session_plan_fallback(
         for i, (desc, est) in enumerate(combined_steps, 1)
     ]
 
-    stopping_point = _fallback_stopping_point(task, task_size)
+    session_goal = _fallback_session_goal(task, task_size, task_domain, task_intent)
+    stopping_point = _fallback_stopping_point(task, task_size, task_domain, task_intent)
+    safety_note = _fallback_safety_note(task_domain)
     progress_notes = [
         f"Task classified as {task_size}.",
-        _fallback_session_goal(task, task_size),
+        f"Domain: {task_domain}.",
+        f"Intent: {task_intent}.",
+        session_goal,
     ]
     if stopping_point:
         progress_notes.append(stopping_point)
@@ -991,12 +1219,15 @@ def create_unclump_session_plan_fallback(
         micro_steps=micro_steps,
         task_size=task_size,
         planning_mode=planning_mode,
-        session_goal=_fallback_session_goal(task, task_size),
+        task_intent=task_intent,
+        task_domain=task_domain,
+        session_goal=session_goal,
         stopping_point=stopping_point,
+        safety_note=safety_note,
         progress_notes=progress_notes,
         next_session_prompt=(
-            f'Review the saved notes for "{label}" and continue from the named next action.'
-            if task_size == "large"
+            f'Review the saved progress for "{label}" and continue from the named next action.'
+            if task_size == "large" or stopping_point
             else None
         ),
     )

@@ -104,8 +104,11 @@ class SessionResponse(BaseModel):
     block_reason: str
     task_size: str = "medium"
     planning_mode: str = "one_session_steps"
+    task_intent: str = "immediate_action"
+    task_domain: str = "general"
     session_goal: str = ""
     stopping_point: str | None = None
+    safety_note: str | None = None
     progress_notes: list[str] = Field(default_factory=list)
     next_session_prompt: str | None = None
     entry_hook: str
@@ -335,10 +338,13 @@ async def session_feedback(session_id: str, request: SessionFeedbackRequest):
                 session["micro_steps"] = kept_steps + renumbered
                 session["task_size"] = replanned.task_size
                 session["planning_mode"] = replanned.planning_mode
+                session["task_intent"] = replanned.task_intent
+                session["task_domain"] = replanned.task_domain
                 session["block_label"] = replanned.block_label
                 session["block_reason"] = replanned.block_reason
                 session["session_goal"] = replanned.session_goal
                 session["stopping_point"] = replanned.stopping_point
+                session["safety_note"] = replanned.safety_note
                 session["next_session_prompt"] = replanned.next_session_prompt
                 session.setdefault("progress_notes", []).append(
                     "Replanned the remaining route into smaller moves."
@@ -519,8 +525,11 @@ def _session_response(session: dict) -> dict:
         "block_reason": session["block_reason"],
         "task_size": session.get("task_size", "medium"),
         "planning_mode": session.get("planning_mode", "one_session_steps"),
+        "task_intent": session.get("task_intent", "immediate_action"),
+        "task_domain": session.get("task_domain", "general"),
         "session_goal": session.get("session_goal", ""),
         "stopping_point": session.get("stopping_point"),
+        "safety_note": session.get("safety_note"),
         "progress_notes": session.get("progress_notes", []),
         "next_session_prompt": session.get("next_session_prompt"),
         "entry_hook": session["entry_hook"],

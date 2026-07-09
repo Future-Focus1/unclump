@@ -30,8 +30,15 @@ are broken into one-session chunks, and large tasks become multi-session
 projects with saved stopping points.
 
 AI providers are server-side only. Configure `DEEPSEEK_API_KEY` on the backend
-host to use DeepSeek V4 Flash; if it is missing, the backend can still fall back
-to `OPENAI_API_KEY` or deterministic local heuristics.
+host to use DeepSeek V4 Pro (`DEEPSEEK_MODEL=deepseek-v4-pro`); if it is
+missing, the backend can still fall back to `OPENAI_API_KEY` or deterministic
+local heuristics.
+
+The session planner now interprets the user's real-world goal before generating
+steps. Outcome prompts like `invest in the stock market` or `pass my driving
+test` should become practical first-session routes with stopping points, not
+generic note-writing exercises. Finance and money-related prompts include a
+safety note ending in `Not financial advice.`
 
 Start a session:
 
@@ -99,7 +106,7 @@ docs/
 ## Status
 
 - [x] Task breakdown engine
-- [x] Adaptive Unclump Session v2 with task sizing and checkpoints
+- [x] Adaptive Unclump Session v2 with task sizing, goal interpretation, and checkpoints
 - [x] DeepSeek/OpenAI provider adapter
 - [x] Contextual support/nudge API
 - [x] Simulated coworking sessions and chat API

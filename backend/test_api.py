@@ -91,6 +91,19 @@ def test_session_start_uses_fallback(client):
     assert len(data["feedback_options"]) > 0
 
 
+def test_session_start_finance_includes_safety_note(client):
+    response = client.post(
+        "/api/session/start",
+        json={"task": "invest in the stock market"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["task_domain"] == "finance"
+    assert data["task_intent"] == "finance_setup"
+    assert data["safety_note"]
+    assert "Not financial advice" in data["safety_note"]
+
+
 def test_session_feedback_adapts_current_step(client):
     start = client.post("/api/session/start", json={"task": "reply to an email"}).json()
     response = client.post(
