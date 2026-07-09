@@ -8,8 +8,10 @@ from engine import (
     breakdown_task,
     breakdown_task_fallback,
     create_adaptive_step_fallback,
+    create_coworking_messages_fallback,
     create_support_message_fallback,
     create_unclump_session_plan_fallback,
+    _parse_coworking_messages,
     _parse_response,
     _parse_support_message,
     _parse_session_response,
@@ -303,3 +305,30 @@ class TestUnclumpSessionPlan:
             user_state="overwhelmed",
         )
         assert "visible patch" in clean_result["message"]
+
+    def test_parse_coworking_messages_limits_sender_and_length(self):
+        raw = json.dumps({
+            "messages": [
+                {
+                    "sender": "NotInRoom",
+                    "text": " ".join(["word"] * 40),
+                }
+            ]
+        })
+        result = _parse_coworking_messages(raw, [{"name": "Maya"}])
+        assert result["messages"][0]["sender"] == "Maya"
+        assert len(result["messages"][0]["text"].split()) <= 30
+
+    def test_coworking_fallback_reply_is_short_and_supportive(self):
+        result = create_coworking_messages_fallback(
+            task="reply to an email",
+            mode="reply",
+            coworkers=[
+                {"name": "Maya", "task": "sorting receipts", "quirk": "uses_2"},
+                {"name": "Sam", "task": "opening a draft", "quirk": "lol"},
+            ],
+            user_message="I'm stuck, what should I do?",
+        )
+        assert 1 <= len(result["messages"]) <= 2
+        assert all(len(message["text"].split()) <= 30 for message in result["messages"])
+        assert any(message["sender"] in {"Maya", "Sam"} for message in result["messages"])

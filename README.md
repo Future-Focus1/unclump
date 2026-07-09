@@ -55,6 +55,14 @@ curl -X POST https://unclump-api.onrender.com/api/support \
   -d '{"task":"reply to emails","moment":"nudge","user_state":"overwhelmed"}'
 ```
 
+Generate simulated coworking room messages:
+
+```bash
+curl -X POST https://unclump-api.onrender.com/api/coworking/chat \
+  -H "Content-Type: application/json" \
+  -d '{"task":"reply to emails","mode":"periodic","session_minutes":30,"coworkers":[{"name":"Maya","task":"sorting receipts","quirk":"uses_2"}]}'
+```
+
 Feedback values:
 
 - `done`
@@ -82,6 +90,7 @@ landing/
 docs/
   index.html      # GitHub Pages landing copy
   app.html        # GitHub Pages app copy
+  trial.html      # Shareable private trial with simulated coworking
 ```
 
 ## Status
@@ -90,9 +99,10 @@ docs/
 - [x] Adaptive Unclump Session v1
 - [x] DeepSeek/OpenAI provider adapter
 - [x] Contextual support/nudge API
+- [x] Simulated coworking sessions and chat API
 - [x] FastAPI server
 - [x] Landing page + web app prototype
-- [x] Backend tests: 34 passing
+- [x] Backend tests: 42 passing
 - [ ] Persistent user accounts and profiles
 - [ ] Real online body doubling rooms
 - [ ] WhatsApp bot

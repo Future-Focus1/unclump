@@ -131,3 +131,25 @@ def test_support_endpoint_uses_fallback(client):
     assert data["message"]
     assert data["suggested_action"]
     assert data["reminder_after_minutes"] > 0
+
+
+def test_coworking_chat_endpoint_uses_fallback(client):
+    response = client.post(
+        "/api/coworking/chat",
+        json={
+            "task": "reply to an email",
+            "mode": "reply",
+            "session_minutes": 30,
+            "coworkers": [
+                {"name": "Maya", "task": "sorting receipts", "quirk": "uses_2"},
+                {"name": "Sam", "task": "opening a draft", "quirk": "lol"},
+            ],
+            "recent_messages": [],
+            "user_message": "I'm stuck, what should I do?",
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert 1 <= len(data["messages"]) <= 2
+    assert all(message["sender"] for message in data["messages"])
+    assert all(len(message["text"].split()) <= 30 for message in data["messages"])

@@ -13,6 +13,8 @@ from engine import (
     breakdown_task_fallback,
     create_adaptive_step,
     create_adaptive_step_fallback,
+    create_coworking_messages,
+    create_coworking_messages_fallback,
     create_support_message,
     create_support_message_fallback,
     create_unclump_session_plan,
@@ -114,6 +116,31 @@ class SupportResponse(BaseModel):
     suggested_action: str
     reminder_after_minutes: int
     tone: str
+
+
+class CoworkerProfile(BaseModel):
+    name: str = Field(..., min_length=1, max_length=40)
+    task: str = Field(..., min_length=1, max_length=120)
+    persona: str | None = Field(default=None, max_length=80)
+    quirk: str | None = Field(default=None, max_length=40)
+
+
+class CoworkingMessage(BaseModel):
+    sender: str = Field(..., min_length=1, max_length=40)
+    text: str = Field(..., min_length=1, max_length=240)
+
+
+class CoworkingChatRequest(BaseModel):
+    task: str = Field(..., min_length=1, max_length=500)
+    mode: str = Field(default="periodic", max_length=30)
+    session_minutes: int = Field(default=30, ge=10, le=60)
+    coworkers: list[CoworkerProfile] = Field(default_factory=list, max_length=5)
+    recent_messages: list[CoworkingMessage] = Field(default_factory=list, max_length=30)
+    user_message: str | None = Field(default=None, max_length=500)
+
+
+class CoworkingChatResponse(BaseModel):
+    messages: list[CoworkingMessage]
 
 
 @app.get("/health")
@@ -309,6 +336,40 @@ async def support(request: SupportRequest):
     )
 
 
+@app.post("/api/coworking/chat", response_model=CoworkingChatResponse)
+async def coworking_chat(request: CoworkingChatRequest):
+    """Return simulated coworking room messages."""
+    mode = request.mode.strip().lower()
+    if mode not in {"periodic", "reply"}:
+        raise HTTPException(status_code=422, detail="Invalid coworking chat mode")
+
+    task = request.task.strip()
+    coworkers = [coworker.model_dump() for coworker in request.coworkers[:5]]
+    recent_messages = [message.model_dump() for message in request.recent_messages[-30:]]
+
+    if has_ai_provider():
+        try:
+            return create_coworking_messages(
+                task=task,
+                mode=mode,
+                coworkers=coworkers,
+                recent_messages=recent_messages,
+                user_message=request.user_message,
+                session_minutes=request.session_minutes,
+            )
+        except Exception as e:
+            print(f"AI coworking message failed, using fallback: {e}")
+
+    return create_coworking_messages_fallback(
+        task=task,
+        mode=mode,
+        coworkers=coworkers,
+        recent_messages=recent_messages,
+        user_message=request.user_message,
+        session_minutes=request.session_minutes,
+    )
+
+
 @app.get("/")
 async def root():
     return {
@@ -318,6 +379,7 @@ async def root():
         "endpoint": "POST /api/breakdown",
         "session_endpoint": "POST /api/session/start",
         "support_endpoint": "POST /api/support",
+        "coworking_endpoint": "POST /api/coworking/chat",
         "ai_provider_configured": has_ai_provider(),
     }
 

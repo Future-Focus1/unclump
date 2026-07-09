@@ -476,6 +476,12 @@
             margin-bottom: 1.5rem;
             line-height: 1.5;
         }
+        .doubling-card > p:first-of-type:not(.coworking-intro) {
+            display: none;
+        }
+        .doubling-card .coworking-intro {
+            display: block;
+        }
         .doubling-timer {
             font-size: 3rem;
             font-weight: 800;
@@ -504,6 +510,215 @@
         }
 
         /* ── Share / Accountability ── */
+        .duration-options {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.5rem;
+            margin: 1rem 0 1.25rem;
+        }
+        .duration-btn {
+            min-height: 44px;
+            border-radius: 12px;
+            border: 1.5px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .duration-btn.active {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            color: var(--accent-dark);
+        }
+        .duration-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+        .coworking-meta {
+            color: var(--text-tertiary);
+            font-size: 0.78rem;
+            line-height: 1.4;
+            margin: -0.25rem 0 1rem;
+        }
+        .coworking-room-line {
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+            margin-bottom: 1rem;
+        }
+        .coworking-chat-window {
+            width: 100%;
+            background: #f0f2f5;
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            margin-top: 1rem;
+            text-align: left;
+        }
+        .coworking-chat-header {
+            min-height: 56px;
+            background: #ffffff;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.7rem 0.85rem;
+        }
+        .chat-avatar-stack {
+            display: flex;
+            flex-shrink: 0;
+        }
+        .chat-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            background: var(--accent);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.76rem;
+            font-weight: 800;
+            margin-left: -8px;
+        }
+        .chat-avatar:first-child { margin-left: 0; }
+        .chat-title {
+            flex: 1;
+            min-width: 0;
+        }
+        .chat-title strong {
+            display: block;
+            font-size: 0.92rem;
+            line-height: 1.1;
+        }
+        .chat-title span {
+            display: block;
+            color: var(--text-tertiary);
+            font-size: 0.72rem;
+            margin-top: 0.15rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .chat-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 50%;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+        .coworking-messages {
+            height: min(44vh, 360px);
+            min-height: 250px;
+            overflow-y: auto;
+            padding: 0.85rem;
+            background:
+                linear-gradient(rgba(250, 249, 246, 0.72), rgba(250, 249, 246, 0.72)),
+                radial-gradient(circle at 20% 20%, rgba(91,154,107,0.12), transparent 22%),
+                #eef1ea;
+        }
+        .chat-message {
+            display: flex;
+            flex-direction: column;
+            margin: 0 0 0.65rem;
+            max-width: 84%;
+        }
+        .chat-message.user {
+            margin-left: auto;
+            align-items: flex-end;
+        }
+        .chat-message.system {
+            max-width: 100%;
+            align-items: center;
+        }
+        .chat-sender {
+            color: var(--text-tertiary);
+            font-size: 0.68rem;
+            font-weight: 700;
+            margin: 0 0 0.16rem 0.35rem;
+        }
+        .chat-bubble {
+            border-radius: 18px;
+            border-bottom-left-radius: 5px;
+            background: #fff;
+            color: var(--text);
+            padding: 0.55rem 0.72rem;
+            box-shadow: var(--shadow-sm);
+            font-size: 0.86rem;
+            line-height: 1.35;
+            word-wrap: break-word;
+        }
+        .chat-message.user .chat-bubble {
+            background: #d9fdd3;
+            border-bottom-left-radius: 18px;
+            border-bottom-right-radius: 5px;
+        }
+        .chat-message.system .chat-bubble {
+            background: rgba(255,255,255,0.72);
+            color: var(--text-secondary);
+            border-radius: 100px;
+            text-align: center;
+            font-size: 0.74rem;
+            padding: 0.4rem 0.7rem;
+        }
+        .coworking-chat-form {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.65rem;
+            background: #ffffff;
+            border-top: 1px solid var(--border-light);
+        }
+        .coworking-chat-form input {
+            flex: 1;
+            min-width: 0;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            border-radius: 100px;
+            padding: 0.72rem 0.9rem;
+            font-family: var(--font);
+            font-size: 0.9rem;
+            outline: none;
+        }
+        .chat-send {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: none;
+            background: var(--accent);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 800;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .chat-send:disabled,
+        .coworking-chat-form input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .chat-reopen {
+            width: 100%;
+            margin-top: 1rem;
+        }
+        .chat-lock-note {
+            display: none;
+            color: var(--accent-dark);
+            background: var(--accent-light);
+            border-top: 1px solid rgba(91,154,107,0.18);
+            padding: 0.55rem 0.75rem;
+            font-size: 0.78rem;
+            text-align: center;
+        }
+        .chat-lock-note.active { display: block; }
+
         .share-bar {
             background: var(--surface);
             border: 1px solid var(--border-light);
@@ -710,22 +925,47 @@
             <div class="doubling-screen">
                 <div class="doubling-card">
                     <div class="icon">👥</div>
-                    <h2>Work Together</h2>
-                    <p>You're not alone. Others are working alongside you right now — quietly, cameras off, just presence.</p>
-                    <div class="doubling-timer" id="doublingTimer">25:00</div>
+                    <h2>Coworking</h2>
+                    <p class="coworking-intro">Pick a length and work alongside a simulated quiet group.</p>
+                    <div class="duration-options" id="durationOptions">
+                        <button class="duration-btn" data-minutes="10" onclick="selectCoworkingLength(10)">10 min</button>
+                        <button class="duration-btn active" data-minutes="30" onclick="selectCoworkingLength(30)">30 min</button>
+                        <button class="duration-btn" data-minutes="60" onclick="selectCoworkingLength(60)">1 hour</button>
+                    </div>
+                    <div class="coworking-meta" id="coworkingMeta">Simulated coworking room</div>
+                    <div class="doubling-timer" id="doublingTimer">30:00</div>
                     <div class="doubling-presence">
                         <div class="presence-dot"></div>
                         <div class="presence-dot"></div>
                         <div class="presence-dot"></div>
                     </div>
-                    <p style="color:var(--text-tertiary);font-size:0.8rem;">3 people working nearby</p>
+                    <p class="coworking-room-line" id="coworkingRoomLine">Ready when you are.</p>
                     <button class="btn btn-primary" id="doublingStartBtn" onclick="startDoubling()">
-                        Start 25 min session
+                        Start coworking
                     </button>
                     <button class="btn btn-secondary" id="doublingStopBtn" onclick="stopDoubling()" style="margin-top:0.5rem;">
                         End session
                     </button>
                 </div>
+                <div class="coworking-chat-window hidden" id="coworkingChatWindow">
+                    <div class="coworking-chat-header">
+                        <div class="chat-avatar-stack" id="chatAvatarStack"></div>
+                        <div class="chat-title">
+                            <strong>Group chat</strong>
+                            <span id="chatSubtitle">Simulated coworking companions</span>
+                        </div>
+                        <button class="chat-close" onclick="closeCoworkingChat()" aria-label="Close chat">x</button>
+                    </div>
+                    <div class="coworking-messages" id="coworkingMessages"></div>
+                    <div class="chat-lock-note" id="chatLockNote"></div>
+                    <form class="coworking-chat-form" onsubmit="sendCoworkingMessage(event)">
+                        <input type="text" id="coworkingChatInput" maxlength="240" autocomplete="off" placeholder="Message the room">
+                        <button class="chat-send" id="coworkingSendBtn" type="submit">^</button>
+                    </form>
+                </div>
+                <button class="btn btn-secondary chat-reopen hidden" id="chatReopenBtn" onclick="openCoworkingChat()">
+                    Open group chat
+                </button>
                 <button class="btn btn-secondary" onclick="closeDoubling()" style="margin-top:1rem;border:none;background:transparent;color:var(--text-tertiary);font-size:0.82rem;">
                     ← Back to app
                 </button>
@@ -744,7 +984,41 @@
         let steps = [], currentStep = 0, timerInterval = null;
         let secondsLeft = 0, totalSeconds = 0, startedAt = null;
         let doublingInterval = null, doublingSeconds = 25 * 60;
+        let coworkingSelectedMinutes = 30;
+        let coworkingActive = false;
+        let coworkingCoworkers = [];
+        let coworkingMessages = [];
+        let coworkingMessageTimers = [];
+        let coworkingBotMessageCount = 0;
+        let coworkingPassiveLimit = 5;
+        let coworkingUserInteracted = false;
+        let coworkingUserMessageTimes = [];
+        let coworkingChatLockedUntil = 0;
         let taskHistory = JSON.parse(localStorage.getItem('unclump_history') || '[]');
+
+        const COWORKER_NAMES = [
+            'Maya', 'Jess', 'Rina', 'Sam', 'Tasha', 'Noor', 'Ari', 'Leah',
+            'Nate', 'Priya', 'Cam', 'Zoe', 'Ivy', 'Remy', 'Lena'
+        ];
+        const COWORKER_TASKS = [
+            'clearing three emails',
+            'opening a messy draft',
+            'sorting receipts',
+            'starting laundry',
+            'making one phone call',
+            'tidying one desk corner',
+            'reading one course page',
+            'booking an appointment',
+            'washing five dishes',
+            'planning dinner badly'
+        ];
+        const COWORKER_PERSONAS = [
+            { persona: 'tiny-step realist', quirk: 'uses_2' },
+            { persona: 'laughs easily', quirk: 'lol' },
+            { persona: 'gentle encourager', quirk: 'emoji' },
+            { persona: 'messy starter', quirk: 'typos' },
+            { persona: 'quiet checklist person', quirk: 'checklist' }
+        ];
 
         // ── Screens ──
         function show(id) {
@@ -1457,10 +1731,390 @@
         }
 
         // ── Init ──
+        // Coworking room engine. These declarations intentionally replace the
+        // older timer-only body-doubling handlers above.
+        function showDoubling() {
+            show('doublingScreen');
+            updateCoworkingDisplay();
+        }
+
+        function closeDoubling() {
+            const hasActiveSession = currentSession && currentSession.status !== 'complete';
+            show(hasActiveSession ? 'stepsScreen' : 'inputScreen');
+        }
+
+        function selectCoworkingLength(minutes) {
+            if (coworkingActive) return;
+            coworkingSelectedMinutes = minutes;
+            doublingSeconds = minutes * 60;
+            document.querySelectorAll('.duration-btn').forEach(btn => {
+                btn.classList.toggle('active', Number(btn.dataset.minutes) === minutes);
+            });
+            updateDoublingDisplay();
+        }
+
+        function startDoubling() {
+            if (coworkingActive) return;
+            coworkingActive = true;
+            doublingSeconds = coworkingSelectedMinutes * 60;
+            coworkingCoworkers = generateCoworkers();
+            coworkingMessages = [];
+            coworkingMessageTimers = [];
+            coworkingBotMessageCount = 0;
+            coworkingUserInteracted = false;
+            coworkingUserMessageTimes = [];
+            coworkingChatLockedUntil = 0;
+            coworkingPassiveLimit = randomInt(
+                coworkingSelectedMinutes === 10 ? 3 : 4,
+                coworkingSelectedMinutes === 60 ? 10 : 7
+            );
+
+            document.getElementById('doublingStartBtn').classList.add('hidden');
+            document.getElementById('doublingStopBtn').style.display = '';
+            document.querySelectorAll('.duration-btn').forEach(btn => btn.disabled = true);
+            document.getElementById('coworkingChatWindow').classList.remove('hidden');
+            document.getElementById('chatReopenBtn').classList.add('hidden');
+            document.getElementById('coworkingRoomLine').textContent =
+                `${coworkingCoworkers.length} simulated coworkers joined.`;
+
+            renderCoworkerHeader();
+            addCoworkingMessage('Room', 'Simulated coworkers are settling in. Pick one tiny move and begin.', 'system');
+            updateCoworkingDisplay();
+            updateCoworkingChatLock();
+            schedulePeriodicCoworkingMessage();
+
+            clearInterval(doublingInterval);
+            doublingInterval = setInterval(() => {
+                doublingSeconds--;
+                updateDoublingDisplay();
+                if (doublingSeconds <= 0) finishCoworkingSession();
+            }, 1000);
+        }
+
+        function stopDoubling() {
+            clearInterval(doublingInterval);
+            clearCoworkingTimers();
+            coworkingActive = false;
+            doublingSeconds = coworkingSelectedMinutes * 60;
+            document.getElementById('doublingStartBtn').classList.remove('hidden');
+            document.getElementById('doublingStopBtn').style.display = 'none';
+            document.getElementById('doublingStopBtn').textContent = 'End session';
+            document.querySelectorAll('.duration-btn').forEach(btn => btn.disabled = false);
+            document.getElementById('coworkingRoomLine').textContent = 'Ready when you are.';
+            updateDoublingDisplay();
+            updateCoworkingChatLock();
+        }
+
+        function finishCoworkingSession() {
+            clearInterval(doublingInterval);
+            clearCoworkingTimers();
+            coworkingActive = false;
+            document.getElementById('doublingTimer').textContent = 'Done!';
+            document.getElementById('doublingStopBtn').textContent = 'Great session';
+            document.querySelectorAll('.duration-btn').forEach(btn => btn.disabled = false);
+            addCoworkingMessage('Room', 'Session complete. Nice staying with it.', 'system');
+            updateCoworkingChatLock();
+        }
+
+        function updateDoublingDisplay() {
+            const remaining = Math.max(0, doublingSeconds);
+            const m = Math.floor(remaining / 60);
+            const s = remaining % 60;
+            document.getElementById('doublingTimer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+            updateCoworkingDisplay();
+            updateCoworkingChatLock();
+        }
+
+        function updateCoworkingDisplay() {
+            document.getElementById('coworkingMeta').textContent =
+                coworkingActive
+                    ? `${coworkingSelectedMinutes} min simulated coworking session`
+                    : 'Choose 10, 30, or 60 minutes';
+            document.getElementById('chatSubtitle').textContent =
+                coworkingCoworkers.length
+                    ? coworkingCoworkers.map(c => c.name).slice(0, 4).join(', ')
+                    : 'Simulated coworking companions';
+        }
+
+        function clearCoworkingTimers() {
+            coworkingMessageTimers.forEach(id => clearTimeout(id));
+            coworkingMessageTimers = [];
+        }
+
+        function getCoworkingTask() {
+            return currentSession && currentSession.original_task
+                ? currentSession.original_task
+                : (document.getElementById('taskInput').value.trim() || "today's task");
+        }
+
+        function generateCoworkers() {
+            const names = shuffled(COWORKER_NAMES);
+            const tasks = shuffled(COWORKER_TASKS);
+            return COWORKER_PERSONAS.map((template, index) => ({
+                name: names[index],
+                task: tasks[index],
+                persona: template.persona,
+                quirk: template.quirk
+            }));
+        }
+
+        function renderCoworkerHeader() {
+            const stack = document.getElementById('chatAvatarStack');
+            stack.innerHTML = coworkingCoworkers.slice(0, 3).map(c =>
+                `<div class="chat-avatar">${escapeHtml(c.name.slice(0, 1))}</div>`
+            ).join('');
+            updateCoworkingDisplay();
+        }
+
+        function addCoworkingMessage(sender, text, role = 'bot') {
+            coworkingMessages.push({
+                sender,
+                text: compactChatText(text),
+                role,
+                at: Date.now()
+            });
+            if (coworkingMessages.length > 80) coworkingMessages.shift();
+            renderCoworkingMessages();
+        }
+
+        function renderCoworkingMessages() {
+            const el = document.getElementById('coworkingMessages');
+            el.innerHTML = coworkingMessages.map(message => {
+                const sender = message.role === 'user' || message.role === 'system'
+                    ? ''
+                    : `<div class="chat-sender">${escapeHtml(message.sender)}</div>`;
+                return `<div class="chat-message ${message.role}">
+                    ${sender}
+                    <div class="chat-bubble">${escapeHtml(message.text)}</div>
+                </div>`;
+            }).join('');
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function closeCoworkingChat() {
+            document.getElementById('coworkingChatWindow').classList.add('hidden');
+            document.getElementById('chatReopenBtn').classList.toggle('hidden', !coworkingActive);
+        }
+
+        function openCoworkingChat() {
+            document.getElementById('coworkingChatWindow').classList.remove('hidden');
+            document.getElementById('chatReopenBtn').classList.add('hidden');
+            renderCoworkingMessages();
+            updateCoworkingChatLock();
+        }
+
+        function schedulePeriodicCoworkingMessage() {
+            if (!coworkingActive) return;
+            const limit = coworkingUserInteracted ? coworkingPassiveLimit + 4 : coworkingPassiveLimit;
+            if (coworkingBotMessageCount >= limit) return;
+            const remainingMs = Math.max(8000, doublingSeconds * 1000);
+            const remainingMessages = Math.max(1, limit - coworkingBotMessageCount);
+            const spreadDelay = (remainingMs / remainingMessages) * (0.75 + Math.random() * 0.5);
+            const delay = coworkingBotMessageCount === 0
+                ? randomInt(8000, 16000)
+                : Math.max(25000, Math.min(spreadDelay, 6 * 60 * 1000));
+            const timer = setTimeout(async () => {
+                if (!coworkingActive) return;
+                const messages = await getCoworkingBotMessages('periodic');
+                messages.slice(0, 1).forEach(message => addCoworkingMessage(message.sender, message.text, 'bot'));
+                coworkingBotMessageCount += 1;
+                schedulePeriodicCoworkingMessage();
+            }, delay);
+            coworkingMessageTimers.push(timer);
+        }
+
+        async function sendCoworkingMessage(event) {
+            event.preventDefault();
+            if (!coworkingActive) {
+                toast('Start a coworking session first.');
+                return;
+            }
+            if (isCoworkingChatLocked()) {
+                updateCoworkingChatLock();
+                return;
+            }
+
+            const input = document.getElementById('coworkingChatInput');
+            const text = input.value.trim();
+            if (!text) return;
+            input.value = '';
+            addCoworkingMessage('You', text, 'user');
+            coworkingUserInteracted = true;
+            coworkingUserMessageTimes = coworkingUserMessageTimes
+                .filter(time => Date.now() - time < 5 * 60 * 1000);
+            coworkingUserMessageTimes.push(Date.now());
+
+            if (coworkingUserMessageTimes.length >= 4) {
+                lockCoworkingChat();
+                return;
+            }
+
+            const delay = randomInt(60 * 1000, 120 * 1000);
+            const timer = setTimeout(async () => {
+                if (!coworkingActive || isCoworkingChatLocked()) return;
+                const messages = await getCoworkingBotMessages('reply', text);
+                messages.slice(0, randomInt(1, 2)).forEach(message =>
+                    addCoworkingMessage(message.sender, message.text, 'bot')
+                );
+            }, delay);
+            coworkingMessageTimers.push(timer);
+        }
+
+        function lockCoworkingChat() {
+            coworkingChatLockedUntil = Date.now() + 5 * 60 * 1000;
+            addCoworkingMessage('Room', 'Chat paused for 5 minutes. Give your task the next tiny move.', 'system');
+            toast('Chat paused for 5 minutes. Back to the task.');
+            updateCoworkingChatLock();
+        }
+
+        function isCoworkingChatLocked() {
+            return Date.now() < coworkingChatLockedUntil;
+        }
+
+        function updateCoworkingChatLock() {
+            const input = document.getElementById('coworkingChatInput');
+            const send = document.getElementById('coworkingSendBtn');
+            const note = document.getElementById('chatLockNote');
+            const locked = isCoworkingChatLocked();
+            if (locked) {
+                const seconds = Math.ceil((coworkingChatLockedUntil - Date.now()) / 1000);
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                note.textContent = `Chat paused ${mins}:${secs.toString().padStart(2, '0')} so the task gets a turn.`;
+                note.classList.add('active');
+            } else {
+                note.textContent = '';
+                note.classList.remove('active');
+            }
+            input.disabled = locked || !coworkingActive;
+            send.disabled = locked || !coworkingActive;
+            input.placeholder = locked ? 'Chat paused. Back to the task.' : 'Message the room';
+        }
+
+        async function getCoworkingBotMessages(mode, userMessage = '') {
+            const useBackend = await shouldUseCoworkingBackend();
+            if (useBackend) {
+                try {
+                    const res = await fetch(`${API_URL}/api/coworking/chat`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            task: getCoworkingTask(),
+                            mode,
+                            session_minutes: coworkingSelectedMinutes,
+                            coworkers: coworkingCoworkers,
+                            recent_messages: coworkingMessages.map(({ sender, text }) => ({ sender, text })).slice(-20),
+                            user_message: userMessage
+                        })
+                    });
+                    if (!res.ok) throw new Error('Coworking API error');
+                    const data = await res.json();
+                    if (data.messages && data.messages.length) return data.messages;
+                } catch (e) {
+                    backendAiAvailable = false;
+                }
+            }
+            return localCoworkingMessages(mode, userMessage);
+        }
+
+        async function shouldUseCoworkingBackend() {
+            if (backendAiAvailable === true) return true;
+            if (backendAiAvailable === false) return false;
+            await shouldUseBrowserTrial();
+            return backendAiAvailable === true;
+        }
+
+        function localCoworkingMessages(mode, userMessage = '') {
+            if (!coworkingCoworkers.length) coworkingCoworkers = generateCoworkers();
+            const startIndex = (coworkingMessages.length + coworkingBotMessageCount) % coworkingCoworkers.length;
+            const count = mode === 'reply' && userMessage.includes('?') ? 2 : 1;
+            return Array.from({ length: count }, (_, offset) => {
+                const coworker = coworkingCoworkers[(startIndex + offset) % coworkingCoworkers.length];
+                const text = mode === 'reply'
+                    ? localCoworkingReply(userMessage, coworker, offset)
+                    : localCoworkingPeriodic(coworker, offset);
+                return {
+                    sender: coworker.name,
+                    text: applyCoworkerQuirk(text, coworker, userMessage)
+                };
+            });
+        }
+
+        function localCoworkingPeriodic(coworker, index) {
+            const variants = [
+                `starting ${coworker.task}. tiny bit first.`,
+                `checking in, i opened ${coworker.task}. staying with it.`,
+                `still here. doing ${coworker.task} for a few mins.`,
+                `tiny progress on ${coworker.task}. keeping it low drama.`
+            ];
+            return variants[(coworkingBotMessageCount + index) % variants.length];
+        }
+
+        function localCoworkingReply(userMessage, coworker, index) {
+            const lower = userMessage.toLowerCase();
+            if (/stuck|hard|overwhelmed|can't|cant|avoid/.test(lower)) {
+                return [
+                    'same kind of feeling here. make it almost silly-small.',
+                    'could you open it and only look for 10 sec?'
+                ][index % 2];
+            }
+            if (userMessage.includes('?')) {
+                return [
+                    "i'd pick the easiest doorway, not the perfect one.",
+                    'maybe make a rough version first and fix later.'
+                ][index % 2];
+            }
+            return [
+                "heard. i'm staying with my tiny step too.",
+                'nice, keep it small. one messy bit counts.'
+            ][index % 2];
+        }
+
+        function applyCoworkerQuirk(text, coworker, userMessage = '') {
+            let output = text;
+            if (coworker.quirk === 'uses_2') {
+                output = output.replace(/\b(to|two|too)\b/gi, '2');
+            } else if (coworker.quirk === 'lol' && /lol|haha|funny|oops|chaos|mess/i.test(userMessage || output)) {
+                output = `lol ${output}`;
+            } else if (coworker.quirk === 'typos' && Math.random() < 0.55) {
+                output = output.replace('small', 'smol').replace('really', 'rlly').replace('because', 'bc');
+            } else if (coworker.quirk === 'emoji' && Math.random() < 0.55) {
+                output = `${output} :)`;
+            } else if (coworker.quirk === 'checklist' && Math.random() < 0.5) {
+                output = `next: ${output}`;
+            }
+            return compactChatText(output);
+        }
+
+        function compactChatText(text) {
+            const words = text.trim().split(/\s+/).filter(Boolean);
+            if (words.length <= 30) return text.trim();
+            return `${words.slice(0, 30).join(' ')}...`;
+        }
+
+        function shuffled(items) {
+            return [...items].sort(() => Math.random() - 0.5);
+        }
+
+        function randomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         document.getElementById('taskInput').addEventListener('keydown', e => {
             if (e.key === 'Enter') unclump();
         });
         document.getElementById('doublingStopBtn').style.display = 'none';
+        selectCoworkingLength(30);
+        updateCoworkingChatLock();
         updateRecent();
     </script>
 </body>
