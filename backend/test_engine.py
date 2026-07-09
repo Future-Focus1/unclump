@@ -288,6 +288,7 @@ class TestUnclumpSessionPlan:
         assert result.planning_mode == "single_burst"
         assert result.block_label == "Piece of Cake - You've got this one."
         assert 1 <= len(result.micro_steps) <= 3
+        assert "mountain" not in result.micro_steps[0].support_note.lower()
 
     def test_fallback_classifies_start_company_as_multi_session(self):
         result = create_unclump_session_plan_fallback("start a company")

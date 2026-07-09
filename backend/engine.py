@@ -903,6 +903,8 @@ def create_unclump_session_plan_fallback(
     task_size = _guess_task_size(task, context)
     planning_mode = _planning_mode_for_task_size(task_size)
     block_type = _guess_block_type(task, context)
+    if task_size == "small":
+        block_type = "unclear_next_step"
     task_steps = _session_steps_for_task(task, task_size)
     label = _clean_task_label(task, 70)
 
@@ -959,8 +961,6 @@ def create_unclump_session_plan_fallback(
     else:
         combined_steps = task_steps[:6]
 
-    if task_size == "small":
-        block_type = "unclear_next_step"
     micro_steps = [
         SessionStep(
             step_number=i,
