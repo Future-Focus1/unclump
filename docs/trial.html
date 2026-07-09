@@ -308,6 +308,19 @@
             font-size: 0.86rem;
             line-height: 1.45;
         }
+        .session-goal {
+            margin-top: 0.65rem;
+            color: var(--text);
+            font-size: 0.82rem;
+            line-height: 1.4;
+            font-weight: 600;
+        }
+        .session-stop {
+            margin-top: 0.4rem;
+            color: var(--text-tertiary);
+            font-size: 0.78rem;
+            line-height: 1.4;
+        }
 
         .step-card {
             background: var(--surface);
@@ -377,7 +390,7 @@
         }
         .feedback-actions {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 0.5rem;
             margin-top: 0.65rem;
         }
@@ -771,6 +784,40 @@
             margin-top: 0.75rem;
             text-align: center;
         }
+        .choice-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(20, 28, 24, 0.38);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            z-index: 80;
+        }
+        .choice-dialog {
+            width: min(360px, 100%);
+            background: var(--surface);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            padding: 1.2rem;
+            text-align: center;
+        }
+        .choice-dialog h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.45rem;
+            color: var(--text);
+        }
+        .choice-dialog p {
+            color: var(--text-secondary);
+            font-size: 0.88rem;
+            line-height: 1.45;
+            margin-bottom: 1rem;
+        }
+        .choice-actions {
+            display: grid;
+            gap: 0.55rem;
+        }
         .trial-note {
             color: var(--text-tertiary);
             font-size: 0.78rem;
@@ -791,7 +838,7 @@
             <img class="trial-logo" src="logo.png" alt="Unclump">
             <div class="trial-badge">Private Trial</div>
             <div class="header-actions">
-                <button class="icon-btn" id="doublingBtn" onclick="showDoubling()" title="Body doubling">
+                <button class="icon-btn" id="doublingBtn" onclick="showDoubling()" title="Coworking">
                     👥
                 </button>
             </div>
@@ -817,7 +864,7 @@
                     </div>
                     <div class="error-banner hidden" id="inputError"></div>
                 </div>
-                <p class="trial-note">This trial runs fully in your browser. Nothing is sent to a server.</p>
+                <p class="trial-note">Private trial. When AI planning is unavailable, it falls back to the built-in browser planner.</p>
 
                 <div class="recent-tasks hidden" id="recentTasks">
                     <div class="label">Recent</div>
@@ -832,7 +879,7 @@
                 <div class="loading-dots">
                     <span></span><span></span><span></span>
                 </div>
-                <p>Breaking this down into tiny steps...</p>
+                <p>Reading the task and building the route...</p>
             </div>
         </div>
 
@@ -841,8 +888,10 @@
             <div class="steps-screen">
                 <div class="step-progress-row" id="stepDots"></div>
                 <div class="session-insight" id="sessionInsight">
-                    <div class="label" id="blockLabel">Stuck point</div>
-                    <div class="reason" id="blockReason">Finding the smallest safe entry point.</div>
+                    <div class="label" id="blockLabel">Planning route</div>
+                    <div class="reason" id="blockReason">Deciding the size of this task.</div>
+                    <div class="session-goal hidden" id="sessionGoal"></div>
+                    <div class="session-stop hidden" id="sessionStop"></div>
                 </div>
                 <div class="step-card">
                     <div class="step-number" id="stepBadge">Step 1 of 5</div>
@@ -870,12 +919,8 @@
                         </button>
                     </div>
                     <div class="feedback-actions">
-                        <button class="btn btn-secondary" onclick="sendFeedback('too_hard')">Too hard</button>
                         <button class="btn btn-secondary" onclick="sendFeedback('need_smaller')">Make smaller</button>
                         <button class="btn btn-secondary" onclick="sendFeedback('distracted')">I drifted</button>
-                        <button class="btn btn-secondary" onclick="getSupportNudge('nudge')">Nudge me</button>
-                        <button class="btn btn-secondary" onclick="sendFeedback('not_right')">Wrong step</button>
-                        <button class="btn btn-secondary" onclick="showDoubling()">Body double</button>
                     </div>
                 </div>
                 <div class="skip-hint hidden" id="skipHint">
@@ -971,6 +1016,29 @@
                 </button>
             </div>
         </div>
+
+        <div class="choice-overlay hidden" id="driftDialog">
+            <div class="choice-dialog">
+                <h3 id="driftTitle">That's okay.</h3>
+                <p>Attention moved. Bring it back without making it a whole drama.</p>
+                <div class="choice-actions">
+                    <button class="btn btn-primary" onclick="driftPickUp()">Pick up where we left off</button>
+                    <button class="btn btn-secondary" onclick="driftStartOver()">Start over</button>
+                    <button class="btn btn-secondary" onclick="driftNewTask()">New task</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="choice-overlay hidden" id="resumeDialog">
+            <div class="choice-dialog">
+                <h3>Looks like the same mission.</h3>
+                <p id="resumeText">You have progress saved for a similar task.</p>
+                <div class="choice-actions">
+                    <button class="btn btn-primary" onclick="resumeSavedTask()">Pick up where we left off</button>
+                    <button class="btn btn-secondary" onclick="startFreshTask()">Start fresh</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -995,6 +1063,22 @@
         let coworkingUserMessageTimes = [];
         let coworkingChatLockedUntil = 0;
         let taskHistory = JSON.parse(localStorage.getItem('unclump_history') || '[]');
+        let pendingResumeTask = null;
+        let pendingResumeThread = null;
+
+        const TASK_THREAD_KEY = 'unclump_task_threads';
+        const PLAN_SUBTITLES = {
+            small: "Piece of Cake - You've got this one.",
+            medium: "Let's break it down - we can handle this in one go if we break it into smaller chunks.",
+            large: "Overwhelming - this may feel too large to do in one go, let's do it over multiple sessions together."
+        };
+        const DRIFT_MESSAGES = [
+            "That's okay.",
+            "It happens.",
+            "No damage done.",
+            "Good catch. Bring it back.",
+            "Reset, then move."
+        ];
 
         const COWORKER_NAMES = [
             'Maya', 'Jess', 'Rina', 'Sam', 'Tasha', 'Noor', 'Ari', 'Leah',
@@ -1066,7 +1150,7 @@
 
         // ── Unclump ──
         const BLOCK_LABELS = {
-            overwhelm: 'Overwhelm',
+            overwhelm: PLAN_SUBTITLES.medium,
             unclear_next_step: 'Unclear next step',
             shame: 'Shame spiral',
             low_energy: 'Low energy',
@@ -1076,13 +1160,13 @@
         };
 
         const BLOCK_REASONS = {
-            overwhelm: 'This may feel too large to enter all at once.',
-            unclear_next_step: 'The next action may not be visible enough yet.',
-            shame: 'Pressure and guilt can make starting feel unsafe.',
-            low_energy: 'Your available energy may be lower than the task is asking for.',
-            avoidance: 'This may need a lower-commitment first contact.',
-            sensory: 'The setup or environment may be adding friction.',
-            emotional: 'This task may be carrying more feeling than its size suggests.'
+            overwhelm: 'This needs a route, not more staring at the whole thing.',
+            unclear_next_step: 'The next move is not obvious yet, so we are making it visible.',
+            shame: 'Pressure has been stealing motion. We are using messy progress instead.',
+            low_energy: 'Energy is low, so the first move has to create momentum fast.',
+            avoidance: 'The task is easier to face after one low-commitment contact.',
+            sensory: 'The setup is adding drag. Reduce friction, then move.',
+            emotional: 'This has feeling attached, but action can still start.'
         };
 
         function makeId() {
@@ -1102,6 +1186,50 @@
             return terms.some(term => text.includes(term));
         }
 
+        function classifyTaskSize(task, contextText = '') {
+            const text = `${task} ${contextText}`.toLowerCase();
+            if (includesAny(text, [
+                'start a company', 'start company', 'start a business', 'launch a business',
+                'build a business', 'write a book', 'move house', 'change career',
+                'get a degree', 'build an app', 'launch a product', 'plan a wedding',
+                'renovate', 'sort my life'
+            ])) return 'large';
+            if (includesAny(text, [
+                'leave the house', 'go outside', 'get out the door', 'take the bins out',
+                'take out the bin', 'brush teeth', 'brush my teeth', 'shower',
+                'get dressed', 'put shoes on', 'stand up', 'drink water'
+            ])) return 'small';
+            const words = task.toLowerCase().match(/\w+/g) || [];
+            if (words.length <= 4 && !includesAny(text, ['project', 'business', 'company', 'tax', 'essay', 'report', 'application'])) {
+                return 'small';
+            }
+            return 'medium';
+        }
+
+        function subtitleForTaskSize(size) {
+            return PLAN_SUBTITLES[size] || PLAN_SUBTITLES.medium;
+        }
+
+        function planningModeForTaskSize(size) {
+            return size === 'large'
+                ? 'multi_session_project'
+                : size === 'small'
+                    ? 'single_burst'
+                    : 'one_session_steps';
+        }
+
+        function sessionGoalForTask(task, size) {
+            const label = taskLabel(task, 70);
+            if (size === 'small') return `Finish the immediate task: ${label}.`;
+            if (size === 'large') return `Create the first saved checkpoint for ${label}.`;
+            return `Move ${label} from stuck to visibly underway.`;
+        }
+
+        function stoppingPointForTask(task, size) {
+            if (size !== 'large') return null;
+            return 'Stop when the first project note is saved and the next concrete action is named.';
+        }
+
         function tinyEntryActionForText(task) {
             const text = task.toLowerCase();
             if (includesAny(text, ['email', 'message', 'reply', 'inbox', 'dm', 'whatsapp'])) return 'Open the email, message, or inbox without replying yet.';
@@ -1117,15 +1245,15 @@
 
         function supportMessageForTask(task, label) {
             const text = task.toLowerCase();
-            if (includesAny(text, ['email', 'message', 'reply', 'inbox', 'dm', 'whatsapp'])) return `For "${label}", the reply only has to become visible before it becomes polished.`;
-            if (includesAny(text, ['clean', 'tidy', 'room', 'flat', 'house', 'desk', 'kitchen'])) return `For "${label}", change one visible patch instead of taking on the whole space.`;
-            if (includesAny(text, ['tax', 'form', 'admin', 'paperwork', 'application'])) return `For "${label}", find one document or missing answer before solving the whole admin job.`;
-            if (includesAny(text, ['write', 'essay', 'report', 'proposal', 'draft', 'blog'])) return `For "${label}", make one rough sentence exist before asking it to be good.`;
-            if (includesAny(text, ['call', 'phone', 'ring', 'appointment', 'book'])) return `For "${label}", put the number, contact, or booking page in front of you first.`;
-            if (includesAny(text, ['laundry', 'washing', 'clothes'])) return `For "${label}", move one piece of laundry before sorting the whole pile.`;
-            if (includesAny(text, ['dishes', 'washing up', 'plates', 'sink'])) return `For "${label}", one dish counts as a real start.`;
-            if (includesAny(text, ['study', 'revise', 'revision', 'learn', 'course', 'homework'])) return `For "${label}", use one heading, question, or example as the entry point.`;
-            return `For "${label}", make the task visible before trying to solve it.`;
+            if (includesAny(text, ['email', 'message', 'reply', 'inbox', 'dm', 'whatsapp'])) return `For "${label}", get the reply visible first. Polish later.`;
+            if (includesAny(text, ['clean', 'tidy', 'room', 'flat', 'house', 'desk', 'kitchen'])) return `For "${label}", make one visible patch different.`;
+            if (includesAny(text, ['tax', 'form', 'admin', 'paperwork', 'application'])) return `For "${label}", name the first missing document or answer.`;
+            if (includesAny(text, ['write', 'essay', 'report', 'proposal', 'draft', 'blog'])) return `For "${label}", rough words beat a blank page.`;
+            if (includesAny(text, ['call', 'phone', 'ring', 'appointment', 'book'])) return `For "${label}", get the number, page, or slot in front of you.`;
+            if (includesAny(text, ['laundry', 'washing', 'clothes'])) return `For "${label}", move the next small load.`;
+            if (includesAny(text, ['dishes', 'washing up', 'plates', 'sink'])) return `For "${label}", clear one group.`;
+            if (includesAny(text, ['study', 'revise', 'revision', 'learn', 'course', 'homework'])) return `For "${label}", pick one heading or question and work that.`;
+            return `For "${label}", make the task visible, then move.`;
         }
 
         function guessBlockType(task) {
@@ -1138,135 +1266,155 @@
             return 'overwhelm';
         }
 
-        function baseStepsFor(task, blockType) {
+        function baseStepsFor(task, blockType, taskSize = classifyTaskSize(task)) {
             const text = task.toLowerCase();
             const label = taskLabel(task);
+            if (taskSize === 'large') {
+                if (includesAny(text, ['company', 'business', 'startup', 'product'])) {
+                    return [
+                        ['Open a note and write the business idea in one rough sentence.', 180],
+                        ['Write who this helps in one plain sentence.', 180],
+                        ['List three unknowns: customer, offer, money, legal, or time.', 300],
+                        ['Circle the one unknown that blocks the next move most.', 120],
+                        ['Write the next research or admin action under that circle.', 180],
+                        ['Stop with the note saved and the next action named.', 60]
+                    ];
+                }
+                return [
+                    [`Open a note and title it: "${label}".`, 120],
+                    ['Write what finished would look like in one rough sentence.', 240],
+                    ['List the first three chunks this project probably contains.', 300],
+                    ['Pick the chunk that would unlock the most progress this week.', 180],
+                    ['Write the next visible action for that chunk.', 180],
+                    ['Stop with the project note saved and the next action named.', 60]
+                ];
+            }
+            if (includesAny(text, ['leave the house', 'go outside', 'get out the door'])) {
+                return [
+                    ['Stand up and put your phone, keys, wallet, or bag in one place.', 120],
+                    ['Check the one thing you actually need to take with you.', 90],
+                    ['Shoes on, door open, move. Momentum beats mood.', 120]
+                ];
+            }
             if (blockType === 'low_energy') {
                 return [
-                    ['Put both feet on the floor.', 10],
-                    [`Take one slow breath while keeping "${label}" as the only task.`, 10],
-                    [tinyEntryActionForText(task), 20],
-                    ['Look at the task page or object for ten seconds without fixing it yet.', 10],
-                    ['Move one task-related item, tab, or sentence into view.', 20]
+                    ['Put both feet on the floor and sit forward.', 30],
+                    [`Take one breath and keep "${label}" as the only job.`, 30],
+                    [tinyEntryActionForText(task), 120],
+                    ['Look at the task page or object without fixing it yet.', 60],
+                    ['Move one task-related item, tab, or sentence into view.', 120]
                 ];
             }
             if (includesAny(text, ['email', 'message', 'reply', 'inbox', 'dm', 'whatsapp'])) {
                 return [
-                    ['Open the email, message, or inbox without replying yet.', 15],
-                    ["Read only the sender's name and the first line.", 20],
-                    ['Type one rough sentence in the reply box.', 45],
-                    ['Add one useful detail or answer one question from the message.', 45],
-                    ['Read the draft once without rewriting everything.', 30],
-                    ['Send it, or save the draft and close the tab.', 15]
+                    ['Open the message and read it once without replying yet.', 120],
+                    ['Type a rough first sentence. It can be blunt; polish comes later.', 180],
+                    ['Answer one actual question or add one useful detail.', 240],
+                    ['Read it once for sense, not perfection.', 120],
+                    ['Send it, or save the draft with the next missing detail named.', 60]
                 ];
             }
             if (includesAny(text, ['clean', 'tidy', 'room', 'flat', 'house', 'desk', 'kitchen'])) {
                 return [
-                    ['Pick up one item you can see.', 20],
-                    ['Put that item where it belongs, or into one temporary pile.', 30],
-                    ['Pick up the next closest item.', 20],
-                    ['Clear one small patch of floor, desk, or counter.', 60],
-                    ['Put rubbish from that patch into a bin or bag.', 45],
-                    ['Stop with that one patch visibly different.', 10]
+                    ['Pick one small zone: desk corner, sink edge, floor patch, or chair.', 60],
+                    ['Remove rubbish or obvious wrong-place items from that zone.', 240],
+                    ['Put the next five items where they belong or into one temporary pile.', 300],
+                    ['Wipe, clear, or straighten the visible surface you opened up.', 180],
+                    ['Stop when that one zone looks different. That is the win.', 60]
                 ];
             }
             if (includesAny(text, ['tax', 'form', 'admin', 'paperwork', 'application'])) {
                 return [
-                    ['Open the folder, app, or website for this admin task.', 20],
-                    ['Find one document, form, or page that belongs with it.', 45],
-                    ["Put today's date on a note or at the top of a draft.", 15],
-                    ['Write the name of one missing document or answer.', 30],
-                    ['Move that missing piece into view, or write where it probably is.', 45],
-                    ['Leave the admin page open with the next missing piece visible.', 10]
+                    ['Open the form, website, folder, or email thread.', 120],
+                    ['Find the first missing document, answer, or decision.', 240],
+                    ['Write that missing piece on a note in plain language.', 120],
+                    ['Find it, request it, or write exactly where to get it next.', 300],
+                    ['Stop with the page open and the next missing piece named.', 60]
                 ];
             }
             if (includesAny(text, ['write', 'essay', 'report', 'proposal', 'draft', 'blog'])) {
                 return [
-                    ['Open a blank note or the document for this writing task.', 15],
-                    ['Type one messy sentence about what the piece needs to say.', 45],
-                    ['Add one bullet that starts with a verb.', 30],
-                    ['Write one imperfect line under that bullet.', 60],
-                    ['Mark the line with a placeholder if it needs fixing later.', 15],
-                    ['Leave the document open with the rough line visible.', 10]
+                    ['Open the document and write the ugly version of the point.', 180],
+                    ['Add three bullets for what this needs to cover.', 240],
+                    ['Turn the easiest bullet into rough sentences.', 420],
+                    ['Mark one gap with a placeholder instead of stopping.', 60],
+                    ['Stop with words on the page and the next bullet marked.', 60]
                 ];
             }
             if (includesAny(text, ['call', 'phone', 'ring', 'appointment', 'book'])) {
                 return [
-                    ['Open the contact, number, or booking page.', 20],
-                    ['Write one sentence for what you need from the call or booking.', 40],
-                    ['Check the opening hours, calendar, or next available slot.', 45],
-                    ['Put the number or booking button in front of you.', 15],
-                    ['Start the call, or choose one slot and leave it selected.', 30],
-                    ['Write down the result or the next time to try.', 20]
+                    ['Open the number, contact, booking page, or calendar.', 90],
+                    ['Write the one sentence you need to say or ask.', 120],
+                    ['Check the next available time, slot, or opening hours.', 180],
+                    ['Make the call or choose the slot.', 300],
+                    ['Write down the result or the next time to try.', 90]
                 ];
             }
             if (includesAny(text, ['laundry', 'washing', 'clothes'])) {
                 return [
-                    ['Pick up one piece of laundry.', 10],
-                    ['Carry it to the basket, machine, or one clothes pile.', 20],
-                    ['Pick up two more pieces from the same area.', 30],
-                    ['Open the machine, basket, drawer, or drying space.', 20],
-                    ['Move one small load to the next place it belongs.', 60],
-                    ['Leave the laundry area with one pile changed.', 10]
+                    ['Pick one laundry zone: floor pile, basket, machine, or drying rack.', 60],
+                    ['Move one small load to the next place it belongs.', 240],
+                    ['Start the machine, hang five items, or fold five items.', 300],
+                    ['Reset the laundry area enough that the next move is obvious.', 120]
                 ];
             }
             if (includesAny(text, ['dishes', 'washing up', 'plates', 'sink'])) {
                 return [
-                    ['Pick up one dish, cup, or piece of cutlery.', 10],
-                    ['Put it beside the sink or into the dishwasher.', 15],
-                    ['Turn on the tap or open the dishwasher door.', 10],
-                    ['Wash or load that one item.', 30],
-                    ['Repeat with the next closest item.', 30],
-                    ['Stop after one small group is done.', 10]
+                    ['Move the first small group of dishes beside the sink or dishwasher.', 120],
+                    ['Wash or load that group.', 300],
+                    ['Clear the next visible group if you still have momentum.', 240],
+                    ['Stop when the sink or counter has one obvious improvement.', 60]
                 ];
             }
             if (includesAny(text, ['study', 'revise', 'revision', 'learn', 'course', 'homework'])) {
                 return [
-                    ['Open the notes, book, course page, or homework file.', 20],
-                    ['Find one heading, question, or example connected to this task.', 30],
-                    ['Read only that one heading, question, or example.', 45],
-                    ['Write one rough answer, keyword, or question beside it.', 45],
-                    ['Mark the next heading or question with a dot.', 10],
-                    ['Close or continue after that one marked point.', 10]
+                    ['Open the notes, book, course page, or homework file.', 90],
+                    ['Pick one heading, question, or example.', 120],
+                    ['Work that one item until you can write a rough answer or keyword.', 420],
+                    ['Mark the next heading or question for later.', 60]
                 ];
             }
             if (blockType === 'unclear_next_step') {
                 return [
-                    [`Open a note and type: "${label}".`, 15],
-                    ['Underline one word in that sentence that points to a real place, person, or object.', 20],
-                    ['Open or move that place, person, object, page, or tab into view.', 30],
-                    ['Look at it for ten seconds without solving it yet.', 10]
+                    [`Open a note and type: "${label}".`, 60],
+                    ['Circle one word that points to a real place, person, object, or tab.', 60],
+                    ['Open or move that place, person, object, page, or tab into view.', 120],
+                    ['Do one useful action with it for five minutes.', 300]
                 ];
             }
             return [
-                [`Open a note and type: "${label}".`, 15],
-                ['Underline one word in that sentence that points to a real place, person, or object.', 20],
-                ['Open or move that place, person, object, page, or tab into view.', 30],
-                ['Look at it for ten seconds without solving it yet.', 10],
-                ['Write the first touch, click, or move available from here.', 20],
-                ['Make that touch, click, or move for twenty seconds.', 20]
+                [`Open a note and write: "${label}".`, 90],
+                ['Write the first visible place, person, object, or tab connected to it.', 120],
+                ['Bring that thing into view.', 120],
+                ['Do one useful action with it for five minutes.', 300],
+                ['Stop with the next move written down.', 60]
             ];
         }
 
         function supportNoteFor(blockType, isFirst) {
-            if (!isFirst) return 'Keep the next move visible and small.';
+            if (!isFirst) return 'Good. Keep moving while the route is visible.';
             return {
-                overwhelm: 'This lowers the task until your brain has a doorway in.',
-                unclear_next_step: 'This turns the fog into one visible action.',
-                shame: 'This starts without asking you to fix everything at once.',
-                low_energy: 'This uses a very low-energy movement to build momentum.',
-                avoidance: 'This makes contact with the task without demanding full commitment.',
-                sensory: 'This reduces friction before asking for focus.',
-                emotional: 'This gives your body a small action while the feelings catch up.'
-            }[blockType] || 'This makes the task smaller than the resistance around it.';
+                overwhelm: 'This turns the mountain into the next visible grip.',
+                unclear_next_step: 'This gives the task a front door.',
+                shame: 'Messy progress beats frozen perfection.',
+                low_energy: 'Use the least movement that still creates momentum.',
+                avoidance: 'Make contact first. Commitment can come after.',
+                sensory: 'Reduce the friction, then move.',
+                emotional: 'Let the feeling ride along while the action starts.'
+            }[blockType] || 'This makes the next move visible enough to do.';
         }
 
-        function startBrowserTrialSession(task) {
-            const blockType = guessBlockType(task);
-            const microSteps = baseStepsFor(task, blockType).slice(0, 6).map(([description, estimatedSeconds], index) => ({
+        function startBrowserTrialSession(task, context = {}) {
+            const contextText = [context.prior_progress, context.previous_stopping_point, context.recent_friction].filter(Boolean).join(' ');
+            const taskSize = classifyTaskSize(task, contextText);
+            const blockType = taskSize === 'small' ? 'unclear_next_step' : guessBlockType(task);
+            const planningMode = planningModeForTaskSize(taskSize);
+            const sessionGoal = sessionGoalForTask(task, taskSize);
+            const stoppingPoint = stoppingPointForTask(task, taskSize);
+            const microSteps = baseStepsFor(task, blockType, taskSize).slice(0, taskSize === 'small' ? 3 : 6).map(([description, estimatedSeconds], index) => ({
                 step: index + 1,
                 description,
-                estimated_seconds: Math.max(10, Math.min(120, estimatedSeconds)),
+                estimated_seconds: Math.max(15, Math.min(25 * 60, estimatedSeconds)),
                 support_note: supportNoteFor(blockType, index === 0),
                 is_entry_point: index === 0
             }));
@@ -1275,15 +1423,31 @@
                 status: 'active',
                 original_task: task,
                 block_type: blockType,
-                block_label: BLOCK_LABELS[blockType],
-                block_reason: BLOCK_REASONS[blockType],
-                entry_hook: `No whole task right now. Only the first doorway into "${taskLabel(task, 70)}".`,
-                reflection_prompt: 'Which step felt easiest to start, even a little?',
+                block_label: subtitleForTaskSize(taskSize),
+                block_reason: taskSize === 'large'
+                    ? 'This is not one task. We are creating the first useful checkpoint and saving progress.'
+                    : taskSize === 'small'
+                        ? 'This is smaller than the resistance around it. Use the route and move.'
+                        : 'This can be handled in one session when the steps are concrete.',
+                task_size: taskSize,
+                planning_mode: planningMode,
+                session_goal: sessionGoal,
+                stopping_point: stoppingPoint,
+                progress_notes: [
+                    `Task classified as ${taskSize}.`,
+                    sessionGoal,
+                    ...(context.prior_progress ? [`Previous progress: ${context.prior_progress}`] : [])
+                ],
+                next_session_prompt: taskSize === 'large'
+                    ? `Review the saved notes for "${taskLabel(task, 70)}" and continue from the named next action.`
+                    : null,
+                entry_hook: `No waiting for perfect motivation. Move "${taskLabel(task, 70)}" one step forward.`,
+                reflection_prompt: 'What moved this forward?',
                 current_step_index: 0,
                 completed_steps: 0,
                 total_steps: microSteps.length,
                 micro_steps: microSteps,
-                feedback_options: ['done', 'too_hard', 'need_smaller', 'distracted', 'not_right', 'skip'],
+                feedback_options: ['done', 'need_smaller', 'distracted', 'skip'],
                 nudge: null,
                 session_summary: null
             });
@@ -1297,11 +1461,50 @@
             return session;
         }
 
+        function browserReplanRemainingSession() {
+            const index = currentSession.current_step_index || 0;
+            const current = currentSession.micro_steps[index];
+            const context = {
+                recent_friction: `Make smaller was tapped on: ${current ? current.description : 'current step'}`,
+                prior_progress: (currentSession.progress_notes || []).slice(-6).join('; '),
+                previous_stopping_point: currentSession.stopping_point || ''
+            };
+            const replanned = startBrowserTrialSession(currentSession.original_task, context);
+            const replacement = browserAdaptiveStep('need_smaller');
+            if (replanned.micro_steps.length) {
+                replanned.micro_steps[0] = {
+                    ...replanned.micro_steps[0],
+                    description: replacement[0],
+                    estimated_seconds: replacement[1],
+                    support_note: replacement[2],
+                    adapted_from: current ? current.description : '',
+                    adapted_for: 'need_smaller'
+                };
+            }
+            const kept = currentSession.micro_steps.slice(0, index);
+            const remaining = replanned.micro_steps.slice(0, 6).map((step, offset) => ({
+                ...step,
+                step: index + offset + 1
+            }));
+            currentSession.micro_steps = kept.concat(remaining);
+            currentSession.total_steps = currentSession.micro_steps.length;
+            currentSession.task_size = replanned.task_size;
+            currentSession.planning_mode = replanned.planning_mode;
+            currentSession.block_label = replanned.block_label;
+            currentSession.block_reason = replanned.block_reason;
+            currentSession.session_goal = replanned.session_goal;
+            currentSession.stopping_point = replanned.stopping_point;
+            currentSession.next_session_prompt = replanned.next_session_prompt;
+            currentSession.progress_notes = (currentSession.progress_notes || []).concat('Replanned the remaining route into smaller moves.');
+            currentSession.nudge = 'Smaller route loaded. Same mission.';
+            return decorateSession(currentSession);
+        }
+
         function browserAdaptiveStep(feedback) {
             const blockType = currentSession.block_type;
             const task = currentSession.original_task.toLowerCase();
             if (feedback === 'distracted') {
-                return ['Look away from the screen and take one slow breath.', 10, 'This resets attention before choosing the next tiny action.'];
+                return ['Look away from the screen, take one breath, then put the task back in view.', 20, 'Attention wandered. No drama. Bring the task back into the room.'];
             }
             if (feedback === 'not_right') {
                 const description = includesAny(task, ['email', 'message', 'reply', 'inbox', 'dm', 'whatsapp'])
@@ -1310,21 +1513,21 @@
                 return [description, 15, 'Changing direction is allowed. The goal is to find a truer entry point.'];
             }
             if (blockType === 'shame') {
-                return ['Say: this can be messy, then touch the task for ten seconds.', 10, 'The action starts with permission instead of pressure.'];
+                return ['Say: messy counts. Then touch the task for twenty seconds.', 20, 'Messy progress breaks the freeze.'];
             }
             if (task.includes('email') || task.includes('message') || task.includes('reply')) {
-                return ["Open the message and read the sender's name.", 10, 'This lowers the task to one concrete point of contact.'];
+                return ["Open the message and read the sender's name.", 15, 'This lowers the task to one concrete point of contact.'];
             }
             if (task.includes('clean') || task.includes('tidy') || task.includes('room')) {
-                return ['Pick up one item you can see.', 10, 'This makes progress visible without asking for the whole room.'];
+                return ['Pick up one item you can see.', 15, 'This makes progress visible without asking for the whole room.'];
             }
             if (task.includes('tax') || task.includes('form') || task.includes('admin')) {
-                return ['Open the folder, app, or page for this task.', 10, 'This starts with finding the doorway, not solving the whole task.'];
+                return ['Open the folder, app, or page for this task.', 15, 'This starts with finding the doorway, not solving the whole task.'];
             }
             if (task.includes('write') || task.includes('essay') || task.includes('report')) {
-                return ['Open a blank note and type one rough word.', 10, 'A rough word is enough to break the blank-page seal.'];
+                return ['Open a blank note and type one rough word.', 15, 'A rough word is enough to break the blank-page seal.'];
             }
-            return [tinyEntryActionForText(currentSession.original_task), 10, 'This lowers the task to one concrete point of contact.'];
+            return [tinyEntryActionForText(currentSession.original_task), 15, 'This lowers the task to one concrete point of contact.'];
         }
 
         function handleBrowserTrialFeedback(feedback) {
@@ -1334,11 +1537,16 @@
             currentSession.nudge = null;
             if (feedback === 'done') {
                 currentSession.completed_steps += 1;
+                if (step) {
+                    currentSession.progress_notes = (currentSession.progress_notes || []).concat(`Completed: ${step.description}`);
+                }
                 currentSession.current_step_index += 1;
-                currentSession.nudge = 'Nice. The next step can stay small too.';
+                currentSession.nudge = 'Good. That counted. Next move.';
             } else if (feedback === 'skip') {
                 currentSession.current_step_index += 1;
-                currentSession.nudge = 'Skipping is data, not failure. Keep moving to the next doorway.';
+                currentSession.nudge = 'Skipped. Fine. Keep momentum with the next useful move.';
+            } else if (feedback === 'need_smaller') {
+                browserReplanRemainingSession();
             } else if (step) {
                 const [description, estimatedSeconds, supportNote] = browserAdaptiveStep(feedback);
                 currentSession.micro_steps[index] = {
@@ -1349,12 +1557,14 @@
                     adapted_from: step.description,
                     adapted_for: feedback
                 };
-                currentSession.nudge = 'Good catch. The app should adapt to you, not the other way around.';
+                currentSession.nudge = 'Good catch. Smaller route, same mission.';
             }
             if (currentSession.current_step_index >= currentSession.micro_steps.length) {
                 currentSession.status = 'complete';
-                currentSession.session_summary = `You completed ${currentSession.completed_steps} of ${currentSession.micro_steps.length} steps and learned that ${currentSession.block_label.toLowerCase()} may be part of this task's friction.`;
-                currentSession.nudge = 'You made contact with the task. That counts.';
+                currentSession.session_summary = currentSession.planning_mode === 'multi_session_project'
+                    ? `Session checkpoint reached: ${currentSession.completed_steps} of ${currentSession.micro_steps.length} steps done. Progress is recorded; next time, pick up from: ${currentSession.stopping_point || 'the next named action'}.`
+                    : `You completed ${currentSession.completed_steps} of ${currentSession.micro_steps.length} steps. Good. That task is no longer frozen.`;
+                currentSession.nudge = 'Done for this round. Progress recorded.';
             }
             return decorateSession(currentSession);
         }
@@ -1381,6 +1591,102 @@
             }
         }
 
+        function loadTaskThreads() {
+            try {
+                return JSON.parse(localStorage.getItem(TASK_THREAD_KEY) || '[]');
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveTaskThreads(threads) {
+            localStorage.setItem(TASK_THREAD_KEY, JSON.stringify(threads.slice(0, 25)));
+        }
+
+        function taskTokens(task) {
+            const stop = new Set(['the', 'a', 'an', 'to', 'and', 'of', 'my', 'i', 'need', 'want', 'have', 'for', 'it']);
+            return new Set((task.toLowerCase().match(/\w+/g) || [])
+                .filter(word => word.length > 2 && !stop.has(word)));
+        }
+
+        function taskSimilarity(a, b) {
+            const aTokens = taskTokens(a);
+            const bTokens = taskTokens(b);
+            if (!aTokens.size || !bTokens.size) return 0;
+            let shared = 0;
+            aTokens.forEach(token => { if (bTokens.has(token)) shared++; });
+            return shared / Math.max(aTokens.size, bTokens.size);
+        }
+
+        function findSimilarThread(task) {
+            const threads = loadTaskThreads()
+                .filter(thread => thread.status === 'in_progress')
+                .sort((a, b) => (b.updated_at || 0) - (a.updated_at || 0));
+            const normalized = task.trim().toLowerCase();
+            return threads.find(thread => {
+                const original = (thread.canonical_task || '').toLowerCase();
+                return original === normalized
+                    || original.includes(normalized)
+                    || normalized.includes(original)
+                    || taskSimilarity(task, thread.canonical_task || '') >= 0.45;
+            }) || null;
+        }
+
+        function saveCurrentSessionProgress() {
+            if (!currentSession || !currentSession.original_task) return;
+            const threads = loadTaskThreads().filter(thread =>
+                thread.id !== (currentSession.task_thread_id || currentSession.session_id)
+            );
+            const isProject = currentSession.planning_mode === 'multi_session_project';
+            const status = currentSession.status === 'complete' && !isProject ? 'complete' : 'in_progress';
+            const thread = {
+                id: currentSession.task_thread_id || currentSession.session_id,
+                canonical_task: currentSession.original_task,
+                status,
+                planning_mode: currentSession.planning_mode,
+                task_size: currentSession.task_size,
+                session_goal: currentSession.session_goal,
+                stopping_point: currentSession.stopping_point,
+                next_session_prompt: currentSession.next_session_prompt,
+                progress_notes: currentSession.progress_notes || [],
+                session: currentSession,
+                updated_at: Date.now()
+            };
+            currentSession.task_thread_id = thread.id;
+            saveTaskThreads([thread].concat(threads));
+        }
+
+        function showResumeDialog(task, thread) {
+            pendingResumeTask = task;
+            pendingResumeThread = thread;
+            document.getElementById('resumeText').textContent =
+                `Saved progress: ${thread.stopping_point || thread.session_goal || thread.canonical_task}`;
+            document.getElementById('resumeDialog').classList.remove('hidden');
+        }
+
+        function hideResumeDialog() {
+            document.getElementById('resumeDialog').classList.add('hidden');
+        }
+
+        function resumeSavedTask() {
+            const task = pendingResumeTask || (pendingResumeThread && pendingResumeThread.canonical_task) || document.getElementById('taskInput').value.trim();
+            const thread = pendingResumeThread;
+            hideResumeDialog();
+            pendingResumeTask = null;
+            pendingResumeThread = null;
+            document.getElementById('taskInput').value = task;
+            unclump({ skipResume: true, resumeThread: thread });
+        }
+
+        function startFreshTask() {
+            const task = pendingResumeTask || document.getElementById('taskInput').value.trim();
+            hideResumeDialog();
+            pendingResumeTask = null;
+            pendingResumeThread = null;
+            document.getElementById('taskInput').value = task;
+            unclump({ skipResume: true, forceFresh: true });
+        }
+
         function browserSupportNudge(moment) {
             const originalTask = currentSession ? currentSession.original_task : 'this task';
             const label = taskLabel(originalTask, 70);
@@ -1401,10 +1707,24 @@
             };
         }
 
-        async function unclump() {
+        async function unclump(options = {}) {
             const task = document.getElementById('taskInput').value.trim();
             if (!task) return showError('Tell us what you\'re stuck on first.');
             hideError();
+
+            if (!options.skipResume) {
+                const thread = findSimilarThread(task);
+                if (thread) {
+                    showResumeDialog(task, thread);
+                    return;
+                }
+            }
+
+            const resumeContext = options.resumeThread ? {
+                prior_progress: (options.resumeThread.progress_notes || []).join('; '),
+                previous_stopping_point: options.resumeThread.stopping_point || '',
+                recent_friction: options.resumeThread.next_session_prompt || ''
+            } : {};
 
             if (!taskHistory.includes(task)) {
                 taskHistory.unshift(task);
@@ -1418,8 +1738,10 @@
 
             try {
                 if (await shouldUseBrowserTrial()) {
-                    const data = startBrowserTrialSession(task);
+                    const data = startBrowserTrialSession(task, resumeContext);
+                    if (options.resumeThread) data.task_thread_id = options.resumeThread.id;
                     applySession(data);
+                    saveCurrentSessionProgress();
                     startedAt = Date.now();
                     showStep();
                     return;
@@ -1429,18 +1751,25 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         task,
-                        preferred_tone: 'gentle'
+                        preferred_tone: 'direct_motivational',
+                        prior_progress: resumeContext.prior_progress,
+                        previous_stopping_point: resumeContext.previous_stopping_point,
+                        recent_friction: resumeContext.recent_friction
                     })
                 });
                 if (!res.ok) throw new Error('Server error');
                 const data = await res.json();
                 if (!data.current_step) throw new Error('No current step returned');
+                if (options.resumeThread) data.task_thread_id = options.resumeThread.id;
                 applySession(data);
+                saveCurrentSessionProgress();
                 startedAt = Date.now();
                 showStep();
             } catch (e) {
-                const data = startBrowserTrialSession(task);
+                const data = startBrowserTrialSession(task, resumeContext);
+                if (options.resumeThread) data.task_thread_id = options.resumeThread.id;
                 applySession(data);
+                saveCurrentSessionProgress();
                 startedAt = Date.now();
                 toast('Using offline trial mode for this session.');
                 showStep();
@@ -1501,8 +1830,22 @@
             steps = currentSession.micro_steps || [];
             currentStep = currentSession.current_step_index || 0;
 
-            document.getElementById('blockLabel').textContent = currentSession.block_label || 'Stuck point';
-            document.getElementById('blockReason').textContent = currentSession.block_reason || currentSession.entry_hook || 'Finding the smallest safe entry point.';
+            document.getElementById('blockLabel').textContent = currentSession.block_label || subtitleForTaskSize(currentSession.task_size || 'medium');
+            document.getElementById('blockReason').textContent = currentSession.block_reason || currentSession.entry_hook || 'Route built. Start moving.';
+            const goalEl = document.getElementById('sessionGoal');
+            const stopEl = document.getElementById('sessionStop');
+            if (currentSession.session_goal) {
+                goalEl.textContent = `Goal: ${currentSession.session_goal}`;
+                goalEl.classList.remove('hidden');
+            } else {
+                goalEl.classList.add('hidden');
+            }
+            if (currentSession.stopping_point) {
+                stopEl.textContent = `Stopping point: ${currentSession.stopping_point}`;
+                stopEl.classList.remove('hidden');
+            } else {
+                stopEl.classList.add('hidden');
+            }
             document.getElementById('stepBadge').textContent = `Step ${step.step} of ${currentSession.total_steps}`;
             document.getElementById('stepDescription').textContent = step.description;
             document.getElementById('supportNote').textContent = step.support_note || currentSession.entry_hook || '';
@@ -1516,7 +1859,7 @@
                 return `<div class="step-dot ${cls}"></div>`;
             }).join('');
 
-            secondsLeft = Math.max(10, Math.min(120, step.estimated_seconds));
+            secondsLeft = Math.max(15, Math.min(25 * 60, step.estimated_seconds));
             totalSeconds = secondsLeft;
             updateTimerDisplay();
             startTimer();
@@ -1558,12 +1901,19 @@
             clearInterval(timerInterval);
             document.getElementById('skipBtn').classList.add('hidden');
             document.getElementById('skipHint').classList.add('hidden');
+
+            if (feedback === 'distracted') {
+                showDriftDialog();
+                return;
+            }
+
             setFeedbackDisabled(true);
 
             try {
                 if (USE_BROWSER_TRIAL || isBrowserTrialSession()) {
                     const data = handleBrowserTrialFeedback(feedback);
                     applySession(data);
+                    saveCurrentSessionProgress();
                     if (data.nudge) toast(data.nudge);
                     if (data.status === 'complete') {
                         showDone();
@@ -1580,6 +1930,7 @@
                 if (!res.ok) throw new Error('Server error');
                 const data = await res.json();
                 applySession(data);
+                saveCurrentSessionProgress();
                 if (data.nudge) toast(data.nudge);
                 if (data.status === 'complete') {
                     showDone();
@@ -1641,6 +1992,39 @@
             sendFeedback('skip');
         }
 
+        function showDriftDialog() {
+            const title = DRIFT_MESSAGES[Math.floor(Math.random() * DRIFT_MESSAGES.length)];
+            document.getElementById('driftTitle').textContent = title;
+            document.getElementById('driftDialog').classList.remove('hidden');
+        }
+
+        function hideDriftDialog() {
+            document.getElementById('driftDialog').classList.add('hidden');
+        }
+
+        function driftPickUp() {
+            hideDriftDialog();
+            toast('Pick it back up. One move.');
+            showStep();
+        }
+
+        function driftStartOver() {
+            hideDriftDialog();
+            if (!currentSession) return;
+            currentSession.current_step_index = 0;
+            currentSession.completed_steps = 0;
+            currentSession.status = 'active';
+            currentSession.nudge = 'Fresh run. Same mission.';
+            applySession(decorateSession(currentSession));
+            saveCurrentSessionProgress();
+            showStep();
+        }
+
+        function driftNewTask() {
+            hideDriftDialog();
+            goBack();
+        }
+
         function goBack() {
             clearInterval(timerInterval);
             currentSession = null;
@@ -1653,6 +2037,7 @@
         // ── Done ──
         function showDone() {
             clearInterval(timerInterval);
+            saveCurrentSessionProgress();
             show('doneScreen');
             const elapsed = Math.round((Date.now() - startedAt) / 60000);
             const completed = currentSession ? currentSession.completed_steps : steps.length;

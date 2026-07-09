@@ -23,9 +23,11 @@ curl -X POST https://39a564e2a78134da-94-13-62-56.serveousercontent.com/api/brea
 
 ## Adaptive Session API
 
-The product direction is the adaptive session loop: diagnose why a task is
-stuck, offer one tiny action, then adapt when the user says the step is too
-hard, too vague, distracting, or wrong.
+The product direction is the adaptive session loop: size the task, choose the
+right route, assign realistic timers, then adapt when the user needs a smaller
+route or has drifted. Small tasks get a short confidence route, medium tasks
+are broken into one-session chunks, and large tasks become multi-session
+projects with saved stopping points.
 
 AI providers are server-side only. Configure `DEEPSEEK_API_KEY` on the backend
 host to use DeepSeek V4 Flash; if it is missing, the backend can still fall back
@@ -44,7 +46,7 @@ Send feedback to keep the session moving:
 ```bash
 curl -X POST https://unclump-api.onrender.com/api/session/{session_id}/feedback \
   -H "Content-Type: application/json" \
-  -d '{"feedback":"too_hard"}'
+  -d '{"feedback":"need_smaller"}'
 ```
 
 Ask for a contextual support nudge:
@@ -66,11 +68,12 @@ curl -X POST https://unclump-api.onrender.com/api/coworking/chat \
 Feedback values:
 
 - `done`
-- `too_hard`
 - `need_smaller`
 - `distracted`
-- `not_right`
 - `skip`
+
+Older clients may still send `too_hard` or `not_right`; the current app UI no
+longer presents those controls.
 
 ## Architecture
 
@@ -96,13 +99,13 @@ docs/
 ## Status
 
 - [x] Task breakdown engine
-- [x] Adaptive Unclump Session v1
+- [x] Adaptive Unclump Session v2 with task sizing and checkpoints
 - [x] DeepSeek/OpenAI provider adapter
 - [x] Contextual support/nudge API
 - [x] Simulated coworking sessions and chat API
 - [x] FastAPI server
 - [x] Landing page + web app prototype
-- [x] Backend tests: 42 passing
+- [x] Backend tests: 45 passing
 - [ ] Persistent user accounts and profiles
 - [ ] Real online body doubling rooms
 - [ ] WhatsApp bot

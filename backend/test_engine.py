@@ -242,8 +242,36 @@ class TestUnclumpSessionPlan:
         result = _parse_session_response("start project", raw)
         assert result.block_type == "unclear_next_step"
         assert result.confidence == 0.8
-        assert result.micro_steps[0].estimated_seconds == 10
+        assert result.micro_steps[0].estimated_seconds == 15
         assert result.micro_steps[0].support_note == "This makes the task visible."
+        assert result.block_label == "Let's break it down - we can handle this in one go if we break it into smaller chunks."
+
+    def test_parse_session_response_accepts_large_task_route(self):
+        raw = json.dumps({
+            "task_size": "large",
+            "planning_mode": "multi_session_project",
+            "block_type": "overwhelm",
+            "block_reason": "This needs a first checkpoint.",
+            "confidence": 0.8,
+            "entry_hook": "Start with the first checkpoint.",
+            "session_goal": "Create the first business note.",
+            "stopping_point": "Stop when the next action is named.",
+            "progress_notes": ["Business idea named."],
+            "next_session_prompt": "Continue from the named action.",
+            "reflection_prompt": "What moved?",
+            "micro_steps": [
+                {
+                    "description": "Write the business idea in one sentence.",
+                    "estimated_seconds": 300,
+                    "support_note": "This makes the project visible.",
+                }
+            ],
+        })
+        result = _parse_session_response("start a company", raw)
+        assert result.task_size == "large"
+        assert result.planning_mode == "multi_session_project"
+        assert result.block_label == "Overwhelming - this may feel too large to do in one go, let's do it over multiple sessions together."
+        assert result.stopping_point == "Stop when the next action is named."
 
     def test_fallback_detects_low_energy(self):
         result = create_unclump_session_plan_fallback(
@@ -253,6 +281,20 @@ class TestUnclumpSessionPlan:
         assert result.block_type == "low_energy"
         assert result.micro_steps[0].is_entry_point is True
         assert "laundry" in " ".join(step.description.lower() for step in result.micro_steps)
+
+    def test_fallback_classifies_leave_house_as_piece_of_cake(self):
+        result = create_unclump_session_plan_fallback("leave the house")
+        assert result.task_size == "small"
+        assert result.planning_mode == "single_burst"
+        assert result.block_label == "Piece of Cake - You've got this one."
+        assert 1 <= len(result.micro_steps) <= 3
+
+    def test_fallback_classifies_start_company_as_multi_session(self):
+        result = create_unclump_session_plan_fallback("start a company")
+        assert result.task_size == "large"
+        assert result.planning_mode == "multi_session_project"
+        assert result.stopping_point
+        assert any("business idea" in step.description.lower() for step in result.micro_steps)
 
     def test_session_fallback_uses_task_context_for_unknown(self):
         result = create_unclump_session_plan_fallback(

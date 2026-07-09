@@ -16,7 +16,7 @@ class MicroStep:
     """A single action so small you can't fail to do it."""
     step_number: int
     description: str
-    estimated_seconds: int  # max 120 — keep it tiny
+    estimated_seconds: int
     is_entry_point: bool = False  # the first physical action
 
 
@@ -75,6 +75,12 @@ class UnclumpSessionPlan:
     entry_hook: str
     micro_steps: list[SessionStep] = field(default_factory=list)
     reflection_prompt: str = ""
+    task_size: str = "medium"
+    planning_mode: str = "one_session_steps"
+    session_goal: str = ""
+    stopping_point: str | None = None
+    progress_notes: list[str] = field(default_factory=list)
+    next_session_prompt: str | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -85,6 +91,12 @@ class UnclumpSessionPlan:
             "confidence": self.confidence,
             "entry_hook": self.entry_hook,
             "reflection_prompt": self.reflection_prompt,
+            "task_size": self.task_size,
+            "planning_mode": self.planning_mode,
+            "session_goal": self.session_goal,
+            "stopping_point": self.stopping_point,
+            "progress_notes": self.progress_notes,
+            "next_session_prompt": self.next_session_prompt,
             "micro_steps": [step.to_dict() for step in self.micro_steps],
         }
 
@@ -98,6 +110,23 @@ VALID_BLOCK_TYPES = {
     "sensory": "Sensory friction",
     "emotional": "Emotional load",
 }
+
+
+TASK_SUBTITLES = {
+    "small": "Piece of Cake - You've got this one.",
+    "medium": "Let's break it down - we can handle this in one go if we break it into smaller chunks.",
+    "large": "Overwhelming - this may feel too large to do in one go, let's do it over multiple sessions together.",
+}
+
+TASK_PLANNING_MODES = {
+    "small": "single_burst",
+    "medium": "one_session_steps",
+    "large": "multi_session_project",
+}
+
+VALID_TASK_SIZES = set(TASK_SUBTITLES)
+VALID_PLANNING_MODES = set(TASK_PLANNING_MODES.values())
+MAX_SESSION_STEP_SECONDS = 25 * 60
 
 
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
@@ -315,35 +344,55 @@ estimated_seconds must be between 10 and 120. Be realistic.
 """
 
 
-SESSION_SYSTEM_PROMPT = """You are Unclump, an ADHD-friendly execution rescue coach.
+SESSION_SYSTEM_PROMPT = """You are Unclump, an ADHD-friendly execution coach.
 
-The user is stuck. Your job is not to plan their life. Your job is to diagnose the likely
-kind of stuckness and create the first few actions that can get them moving right now.
+Your job is to snap task paralysis into a realistic action route. Be warm, direct,
+motivational, and practical. No shame. No therapy-speak. No babying. Help the user move.
 
 CRITICAL RULES:
-1. Step 1 must be a tiny physical action requiring almost no motivation.
-2. Never shame, scold, moralize, or use the words "just" or "simply".
-3. Keep steps concrete and observable. Avoid abstract planning words.
-4. Maximum 6 steps. Each step must be 10-120 seconds.
-5. Include a short support_note for each step that explains why this tiny action helps.
-6. This is productivity support, not therapy or medical advice.
+1. First classify the task size: small, medium, or large.
+2. Use exactly one of these subtitles:
+   - Piece of Cake - You've got this one.
+   - Let's break it down - we can handle this in one go if we break it into smaller chunks.
+   - Overwhelming - this may feel too large to do in one go, let's do it over multiple sessions together.
+3. Match planning_mode to task size:
+   - small: single_burst
+   - medium: one_session_steps
+   - large: multi_session_project
+4. Small tasks get 1-3 steps. Medium tasks get 3-6 steps. Large tasks get a first-session route with a clear stopping point.
+5. Steps must be concrete, observable actions. Avoid abstract planning fog.
+6. Use realistic timings. A real-world action can be 2-10 minutes. Do not make every step 30 seconds.
+7. estimated_seconds must be 15-1500.
+8. Never shame, scold, moralize, or use the words "just" or "simply".
+9. This is productivity support, not therapy or medical advice.
+
+Examples:
+- "leave the house" is small. Do not overcomplicate it.
+- "reply to a difficult email" is usually medium.
+- "start a company" is large. Do not pretend it can be finished in one session.
 
 Classify block_type as one of:
 overwhelm, unclear_next_step, shame, low_energy, avoidance, sensory, emotional
 
 Respond with ONLY valid JSON in this exact shape:
 {
-  "block_type": "overwhelm",
-  "block_label": "Overwhelm",
-  "block_reason": "One short non-clinical reason this task may feel stuck.",
-  "confidence": 0.7,
-  "entry_hook": "One warm sentence inviting the first action.",
-  "reflection_prompt": "One gentle question to ask after the session.",
+  "task_size": "small",
+  "planning_mode": "single_burst",
+  "block_type": "unclear_next_step",
+  "block_label": "Piece of Cake - You've got this one.",
+  "block_reason": "Direct, practical explanation of the route.",
+  "confidence": 0.8,
+  "entry_hook": "Short motivating line. Direct, not coddling.",
+  "session_goal": "What this session is trying to finish.",
+  "stopping_point": null,
+  "progress_notes": ["One compact note worth saving."],
+  "next_session_prompt": null,
+  "reflection_prompt": "One short question to ask after the session.",
   "micro_steps": [
     {
-      "description": "Tiny physical action.",
-      "estimated_seconds": 30,
-      "support_note": "One sentence explaining why this is safe to start."
+      "description": "Concrete action.",
+      "estimated_seconds": 120,
+      "support_note": "Direct reason this action moves the task forward."
     }
   ]
 }
@@ -353,15 +402,16 @@ Respond with ONLY valid JSON in this exact shape:
 ADAPTATION_SYSTEM_PROMPT = """You are Unclump, an ADHD-friendly execution rescue coach.
 
 The user pushed back on the current step. Replace it with one better step.
-Make the replacement smaller, more concrete, and emotionally safer.
+Make the replacement smaller, more concrete, and easier to move on.
 
 Rules:
 1. Never shame, scold, moralize, or use the words "just" or "simply".
 2. Return one physical action only.
-3. estimated_seconds must be 10-120.
+3. estimated_seconds must be 15-1500, but prefer 15-300 for "make smaller".
 4. If the user says distracted, give a reset action.
 5. If the user says too_hard or need_smaller, shrink the action dramatically.
 6. If the user says not_right, change direction without arguing.
+7. Be direct and motivating, not over-soft.
 
 Respond with ONLY valid JSON:
 {
@@ -531,8 +581,10 @@ def create_unclump_session_plan(
     context_lines = [
         f"Task: {task}",
         f"Energy level: {context.get('energy_level', 'unknown')}",
-        f"Preferred tone: {context.get('preferred_tone', 'gentle')}",
+        f"Preferred tone: {context.get('preferred_tone', 'direct_motivational')}",
         f"Recent friction: {context.get('recent_friction', 'unknown')}",
+        f"Prior progress: {context.get('prior_progress', 'none')}",
+        f"Previous stopping point: {context.get('previous_stopping_point', 'none')}",
     ]
 
     try:
@@ -551,6 +603,39 @@ def create_unclump_session_plan(
 
     raw = response.choices[0].message.content or ""
     return _parse_session_response(task, raw)
+
+
+def _normalize_task_size(value: str | None) -> str:
+    task_size = str(value or "").strip().lower()
+    if task_size in VALID_TASK_SIZES:
+        return task_size
+    return "medium"
+
+
+def _subtitle_for_task_size(task_size: str) -> str:
+    return TASK_SUBTITLES.get(task_size, TASK_SUBTITLES["medium"])
+
+
+def _planning_mode_for_task_size(task_size: str) -> str:
+    return TASK_PLANNING_MODES.get(task_size, TASK_PLANNING_MODES["medium"])
+
+
+def _sanitize_planning_mode(value: str | None, task_size: str) -> str:
+    planning_mode = str(value or "").strip().lower()
+    if planning_mode in VALID_PLANNING_MODES:
+        return planning_mode
+    return _planning_mode_for_task_size(task_size)
+
+
+def _compact_text_list(value: object, fallback: list[str] | None = None) -> list[str]:
+    if not isinstance(value, list):
+        return fallback or []
+    notes = []
+    for item in value[:5]:
+        text = str(item).strip()
+        if text:
+            notes.append(text[:240])
+    return notes
 
 
 def _parse_session_response(task: str, raw: str) -> UnclumpSessionPlan:
@@ -576,13 +661,17 @@ def _parse_session_response(task: str, raw: str) -> UnclumpSessionPlan:
     if block_type not in VALID_BLOCK_TYPES:
         block_type = "overwhelm"
 
+    task_size = _normalize_task_size(data.get("task_size"))
+    planning_mode = _sanitize_planning_mode(data.get("planning_mode"), task_size)
+    subtitle = _subtitle_for_task_size(task_size)
+
     steps = []
     for i, step_data in enumerate(data["micro_steps"][:6], 1):
         desc = str(step_data.get("description", "")).strip()
         if not desc:
             raise ValueError(f"Step {i} has empty description")
         est = int(step_data.get("estimated_seconds", 60))
-        est = max(10, min(120, est))
+        est = max(15, min(MAX_SESSION_STEP_SECONDS, est))
         support_note = str(step_data.get("support_note", "")).strip()
         steps.append(SessionStep(
             step_number=i,
@@ -598,13 +687,211 @@ def _parse_session_response(task: str, raw: str) -> UnclumpSessionPlan:
     return UnclumpSessionPlan(
         original_task=task,
         block_type=block_type,
-        block_label=str(data.get("block_label") or VALID_BLOCK_TYPES[block_type]),
-        block_reason=str(data.get("block_reason") or "This task may need a smaller entry point."),
+        block_label=subtitle,
+        block_reason=str(data.get("block_reason") or "Here is the route. First move, then momentum."),
         confidence=confidence,
-        entry_hook=str(data.get("entry_hook") or "Let's make the first move tiny."),
-        reflection_prompt=str(data.get("reflection_prompt") or "What made starting a little easier?"),
+        entry_hook=str(data.get("entry_hook") or "No waiting to feel ready. Start with the first move."),
+        reflection_prompt=str(data.get("reflection_prompt") or "What moved this forward?"),
         micro_steps=steps,
+        task_size=task_size,
+        planning_mode=planning_mode,
+        session_goal=str(data.get("session_goal") or f"Move {task} forward."),
+        stopping_point=(
+            str(data.get("stopping_point")).strip()
+            if data.get("stopping_point") not in {None, ""}
+            else None
+        ),
+        progress_notes=_compact_text_list(data.get("progress_notes")),
+        next_session_prompt=(
+            str(data.get("next_session_prompt")).strip()
+            if data.get("next_session_prompt") not in {None, ""}
+            else None
+        ),
     )
+
+
+def _guess_task_size(task: str, context: dict | None = None) -> str:
+    text = task.lower()
+    context_text = " ".join(str(v).lower() for v in (context or {}).values() if v)
+    combined = f"{text} {context_text}"
+
+    if _contains_any(
+        combined,
+        (
+            "start a company",
+            "start company",
+            "start a business",
+            "launch a business",
+            "build a business",
+            "write a book",
+            "move house",
+            "change career",
+            "get a degree",
+            "build an app",
+            "launch a product",
+            "plan a wedding",
+            "renovate",
+            "sort my life",
+        ),
+    ):
+        return "large"
+
+    if _contains_any(
+        combined,
+        (
+            "leave the house",
+            "go outside",
+            "get out the door",
+            "take the bins out",
+            "take out the bin",
+            "brush teeth",
+            "brush my teeth",
+            "shower",
+            "get dressed",
+            "put shoes on",
+            "stand up",
+            "drink water",
+        ),
+    ):
+        return "small"
+
+    if len(re.findall(r"\w+", text)) <= 4 and not _contains_any(
+        combined,
+        ("project", "business", "company", "tax", "essay", "report", "application"),
+    ):
+        return "small"
+
+    return "medium"
+
+
+def _session_steps_for_task(task: str, task_size: str) -> list[tuple[str, int]]:
+    text = task.lower()
+    label = _clean_task_label(task)
+
+    if task_size == "large":
+        if _contains_any(text, ("company", "business", "startup", "product")):
+            return [
+                ("Open a note and write the business idea in one rough sentence.", 180),
+                ("Write who this helps in one plain sentence.", 180),
+                ("List three unknowns: customer, offer, money, legal, or time.", 300),
+                ("Circle the one unknown that blocks the next move most.", 120),
+                ("Write the next research or admin action under that circle.", 180),
+                ("Stop with the note saved and the next action named.", 60),
+            ]
+        return [
+            (f'Open a note and title it "{label}".', 120),
+            ("Write what finished would look like in one rough sentence.", 240),
+            ("List the first three chunks this project probably contains.", 300),
+            ("Pick the chunk that would unlock the most progress this week.", 180),
+            ("Write the next visible action for that chunk.", 180),
+            ("Stop with the project note saved and the next action named.", 60),
+        ]
+
+    if _contains_any(text, ("leave the house", "go outside", "get out the door")):
+        return [
+            ("Stand up and put your phone, keys, wallet, or bag in one place.", 120),
+            ("Check the one thing you actually need to take with you.", 90),
+            ("Shoes on, door open, move. Momentum beats mood.", 120),
+        ]
+
+    if _contains_any(text, ("email", "message", "reply", "inbox", "dm", "whatsapp")):
+        return [
+            ("Open the message and read it once without replying yet.", 120),
+            ("Type a rough first sentence. It can be blunt; polish comes later.", 180),
+            ("Answer one actual question or add one useful detail.", 240),
+            ("Read it once for sense, not perfection.", 120),
+            ("Send it, or save the draft with the next missing detail named.", 60),
+        ]
+
+    if _contains_any(text, ("clean", "tidy", "room", "flat", "house", "desk", "kitchen")):
+        return [
+            ("Pick one small zone: desk corner, sink edge, floor patch, or chair.", 60),
+            ("Remove rubbish or obvious wrong-place items from that zone.", 240),
+            ("Put the next five items where they belong or into one temporary pile.", 300),
+            ("Wipe, clear, or straighten the visible surface you opened up.", 180),
+            ("Stop when that one zone looks different. That is the win.", 60),
+        ]
+
+    if _contains_any(text, ("tax", "form", "admin", "paperwork", "application")):
+        return [
+            ("Open the form, website, folder, or email thread.", 120),
+            ("Find the first missing document, answer, or decision.", 240),
+            ("Write that missing piece on a note in plain language.", 120),
+            ("Find it, request it, or write exactly where to get it next.", 300),
+            ("Stop with the page open and the next missing piece named.", 60),
+        ]
+
+    if _contains_any(text, ("write", "essay", "report", "proposal", "draft", "blog")):
+        return [
+            ("Open the document and write the ugly version of the point.", 180),
+            ("Add three bullets for what this needs to cover.", 240),
+            ("Turn the easiest bullet into rough sentences.", 420),
+            ("Mark one gap with a placeholder instead of stopping.", 60),
+            ("Stop with words on the page and the next bullet marked.", 60),
+        ]
+
+    if _contains_any(text, ("call", "phone", "ring", "appointment", "book")):
+        return [
+            ("Open the number, contact, booking page, or calendar.", 90),
+            ("Write the one sentence you need to say or ask.", 120),
+            ("Check the next available time, slot, or opening hours.", 180),
+            ("Make the call or choose the slot.", 300),
+            ("Write down the result or the next time to try.", 90),
+        ]
+
+    if _contains_any(text, ("laundry", "washing", "clothes")):
+        return [
+            ("Pick one laundry zone: floor pile, basket, machine, or drying rack.", 60),
+            ("Move one small load to the next place it belongs.", 240),
+            ("Start the machine, hang five items, or fold five items.", 300),
+            ("Reset the laundry area enough that the next move is obvious.", 120),
+        ]
+
+    if _contains_any(text, ("dishes", "washing up", "plates", "sink")):
+        return [
+            ("Move the first small group of dishes beside the sink or dishwasher.", 120),
+            ("Wash or load that group.", 300),
+            ("Clear the next visible group if you still have momentum.", 240),
+            ("Stop when the sink or counter has one obvious improvement.", 60),
+        ]
+
+    if _contains_any(text, ("study", "revise", "revision", "learn", "course", "homework")):
+        return [
+            ("Open the notes, course page, book, or homework file.", 90),
+            ("Pick one heading, question, or example.", 120),
+            ("Work that one item until you can write a rough answer or keyword.", 420),
+            ("Mark the next heading or question for later.", 60),
+        ]
+
+    if task_size == "small":
+        return [
+            (f'Name the first physical move for "{label}" out loud or in a note.', 45),
+            ("Put the object, page, or place for that move in front of you.", 90),
+            ("Do the move. No ceremony, no negotiation.", 120),
+        ]
+
+    return [
+        (f'Open a note and write: "{label}".', 90),
+        ("Write the first visible place, person, object, or tab connected to it.", 120),
+        ("Bring that thing into view.", 120),
+        ("Do one useful action with it for five minutes.", 300),
+        ("Stop with the next move written down.", 60),
+    ]
+
+
+def _fallback_session_goal(task: str, task_size: str) -> str:
+    label = _clean_task_label(task, 70)
+    if task_size == "small":
+        return f"Finish the immediate task: {label}."
+    if task_size == "large":
+        return f"Create the first saved checkpoint for {label}."
+    return f"Move {label} from stuck to visibly underway."
+
+
+def _fallback_stopping_point(task: str, task_size: str) -> str | None:
+    if task_size != "large":
+        return None
+    return "Stop when the first project note is saved and the next concrete action is named."
 
 
 def create_unclump_session_plan_fallback(
@@ -613,67 +900,105 @@ def create_unclump_session_plan_fallback(
 ) -> UnclumpSessionPlan:
     """Heuristic session plan when AI is unavailable."""
     context = context or {}
+    task_size = _guess_task_size(task, context)
+    planning_mode = _planning_mode_for_task_size(task_size)
     block_type = _guess_block_type(task, context)
-    task_steps = _fallback_steps_for_task(task)
+    task_steps = _session_steps_for_task(task, task_size)
     label = _clean_task_label(task, 70)
 
     support_note = {
-        "overwhelm": "This lowers the size of the task until your brain has a doorway in.",
-        "unclear_next_step": "This turns the fog into one visible action.",
-        "shame": "This starts without asking you to fix everything at once.",
-        "low_energy": "This uses a very low-energy movement to build momentum.",
-        "avoidance": "This makes contact with the task without demanding a full commitment.",
-        "sensory": "This reduces friction before asking for focus.",
-        "emotional": "This gives your body a small action while the feelings catch up.",
+        "overwhelm": "This turns the mountain into the next visible grip.",
+        "unclear_next_step": "This gives the task a front door.",
+        "shame": "Messy progress beats frozen perfection.",
+        "low_energy": "Use the least movement that still creates momentum.",
+        "avoidance": "Make contact first. Commitment can come after.",
+        "sensory": "Reduce the friction, then move.",
+        "emotional": "Let the feeling ride along while the action starts.",
     }[block_type]
 
-    if block_type == "low_energy":
+    if task_size == "small":
+        combined_steps = task_steps[:3]
+    elif task_size == "large":
+        combined_steps = task_steps[:6]
+    elif block_type == "low_energy":
         first_steps = [
-            ("Put both feet on the floor.", 10),
-            (f'Take one slow breath while keeping "{label}" as the only task.', 10),
+            ("Put both feet on the floor and sit forward.", 30),
+            (f'Take one breath and keep "{label}" as the only job.', 30),
             task_steps[0],
         ]
+        remaining = [
+            step
+            for step in task_steps
+            if step not in first_steps
+        ]
+        combined_steps = (first_steps + remaining)[:6]
     elif block_type == "unclear_next_step":
         first_steps = [
-            (f'Open a note and type: "{label}".', 15),
-            ("Underline one word in that sentence that points to a real place, person, or object.", 20),
-            ("Open or move that place, person, object, page, or tab into view.", 30),
+            (f'Open a note and type: "{label}".', 60),
+            ("Circle one word that points to a real place, person, object, or tab.", 60),
+            ("Open or move that place, person, object, page, or tab into view.", 120),
         ]
+        remaining = [
+            step
+            for step in task_steps
+            if step not in first_steps
+        ]
+        combined_steps = (first_steps + remaining)[:6]
     elif block_type == "shame":
         first_steps = [
-            (f'Open or touch the place where "{label}" lives.', 10),
-            ("Say: this is allowed to be messy.", 10),
+            (f'Open or touch the place where "{label}" lives.', 60),
+            ("Say: messy still counts. Then keep the task in view.", 30),
             task_steps[0],
         ]
+        remaining = [
+            step
+            for step in task_steps
+            if step not in first_steps
+        ]
+        combined_steps = (first_steps + remaining)[:6]
     else:
-        first_steps = task_steps[:3]
+        combined_steps = task_steps[:6]
 
-    remaining = [
-        step
-        for step in task_steps
-        if step not in first_steps
-    ]
-    combined_steps = (first_steps + remaining)[:6]
+    if task_size == "small":
+        block_type = "unclear_next_step"
     micro_steps = [
         SessionStep(
             step_number=i,
             description=desc,
-            estimated_seconds=max(10, min(120, est)),
-            support_note=support_note if i == 1 else "Keep the next move visible and small.",
+            estimated_seconds=max(15, min(MAX_SESSION_STEP_SECONDS, est)),
+            support_note=support_note if i == 1 else "Good. Keep moving while the route is visible.",
             is_entry_point=(i == 1),
         )
         for i, (desc, est) in enumerate(combined_steps, 1)
     ]
 
+    stopping_point = _fallback_stopping_point(task, task_size)
+    progress_notes = [
+        f"Task classified as {task_size}.",
+        _fallback_session_goal(task, task_size),
+    ]
+    if stopping_point:
+        progress_notes.append(stopping_point)
+
     return UnclumpSessionPlan(
         original_task=task,
         block_type=block_type,
-        block_label=VALID_BLOCK_TYPES[block_type],
+        block_label=_subtitle_for_task_size(task_size),
         block_reason=_fallback_block_reason(block_type),
         confidence=0.55,
-        entry_hook=f'No whole task right now. Only the first doorway into "{label}".',
-        reflection_prompt="Which step felt easiest to start, even a little?",
+        entry_hook=f'No waiting for perfect motivation. Move "{label}" one step forward.',
+        reflection_prompt="What moved this forward?",
         micro_steps=micro_steps,
+        task_size=task_size,
+        planning_mode=planning_mode,
+        session_goal=_fallback_session_goal(task, task_size),
+        stopping_point=stopping_point,
+        progress_notes=progress_notes,
+        next_session_prompt=(
+            f'Review the saved notes for "{label}" and continue from the named next action.'
+            if task_size == "large"
+            else None
+        ),
     )
 
 
@@ -732,7 +1057,7 @@ def _parse_adaptive_step(raw: str) -> dict:
     est = int(data.get("estimated_seconds", 20))
     return {
         "description": desc,
-        "estimated_seconds": max(10, min(120, est)),
+        "estimated_seconds": max(15, min(MAX_SESSION_STEP_SECONDS, est)),
         "support_note": str(data.get("support_note") or "This replacement keeps the action small."),
         "encouragement": str(data.get("encouragement") or "Good data. We can make it easier."),
     }
@@ -762,11 +1087,11 @@ def create_adaptive_step_fallback(
         else:
             description = _tiny_entry_action_for_task(task)
         support_note = "This lowers the demand to one concrete point of contact."
-        estimated_seconds = 10
+        estimated_seconds = 15
     elif feedback == "distracted":
-        description = "Look away from the screen and take one slow breath."
-        support_note = "This resets attention before choosing the next tiny action."
-        estimated_seconds = 10
+        description = "Look away from the screen, take one breath, then put the task back in view."
+        support_note = "Attention wandered. No drama. Bring the task back into the room."
+        estimated_seconds = 20
     elif feedback == "not_right":
         if "email" in task_lower or "message" in task_lower or "reply" in task_lower:
             description = "Open the message and read the sender's name."
@@ -776,19 +1101,19 @@ def create_adaptive_step_fallback(
         estimated_seconds = 15
     else:
         current_description = str(current_step.get("description") or _tiny_entry_action_for_task(task))
-        description = f"Spend ten seconds on this exact step: {current_description}"
-        support_note = "Ten seconds is enough to restart without turning this into a big demand."
-        estimated_seconds = 10
+        description = f"Spend twenty seconds on this exact step: {current_description}"
+        support_note = "Twenty seconds is enough to restart without making it a big production."
+        estimated_seconds = 20
 
     if block_type == "shame" and feedback in {"too_hard", "need_smaller"}:
-        description = "Say: this can be messy, then touch the task for ten seconds."
-        support_note = "The action starts with permission instead of pressure."
+        description = "Say: messy counts. Then touch the task for twenty seconds."
+        support_note = "Messy progress breaks the freeze."
 
     return {
         "description": description,
         "estimated_seconds": estimated_seconds,
         "support_note": support_note,
-        "encouragement": "Good catch. The app should adapt to you, not the other way around.",
+        "encouragement": "Good catch. Smaller route, same mission.",
     }
 
 
@@ -1093,13 +1418,13 @@ def _guess_block_type(task: str, context: dict | None = None) -> str:
 
 def _fallback_block_reason(block_type: str) -> str:
     reasons = {
-        "overwhelm": "The task may feel too large to enter all at once.",
-        "unclear_next_step": "The next action may not be visible enough yet.",
-        "shame": "Pressure and guilt can make starting feel unsafe.",
-        "low_energy": "Your available energy may be lower than the task is asking for.",
-        "avoidance": "The task may need a lower-commitment first contact.",
-        "sensory": "The environment or setup may be adding extra friction.",
-        "emotional": "The task may be carrying more feeling than its size suggests.",
+        "overwhelm": "This needs a route, not more staring at the whole thing.",
+        "unclear_next_step": "The next move is not obvious yet, so we are making it visible.",
+        "shame": "Pressure has been stealing motion. We are using messy progress instead.",
+        "low_energy": "Energy is low, so the first move has to create momentum fast.",
+        "avoidance": "The task is easier to face after one low-commitment contact.",
+        "sensory": "The setup is adding drag. Reduce friction, then move.",
+        "emotional": "This has feeling attached, but action can still start.",
     }
     return reasons.get(block_type, reasons["overwhelm"])
 

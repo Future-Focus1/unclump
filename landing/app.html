@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Unclump</title>
+    <title>Unclump Trial</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -76,6 +76,28 @@
         .app-header img {
             max-width: 80vw;
             height: auto;
+        }
+        .trial-logo {
+            width: min(260px, 70vw);
+            height: auto;
+            display: block;
+        }
+        .wordmark {
+            font-size: 2.6rem;
+            font-weight: 800;
+            letter-spacing: 0;
+            color: var(--text);
+        }
+        .trial-badge {
+            margin-top: 0.35rem;
+            color: var(--accent-dark);
+            background: var(--accent-light);
+            border-radius: 100px;
+            padding: 0.3rem 0.8rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
         }
         .app-header .header-actions {
             position: absolute;
@@ -286,6 +308,19 @@
             font-size: 0.86rem;
             line-height: 1.45;
         }
+        .session-goal {
+            margin-top: 0.65rem;
+            color: var(--text);
+            font-size: 0.82rem;
+            line-height: 1.4;
+            font-weight: 600;
+        }
+        .session-stop {
+            margin-top: 0.4rem;
+            color: var(--text-tertiary);
+            font-size: 0.78rem;
+            line-height: 1.4;
+        }
 
         .step-card {
             background: var(--surface);
@@ -355,7 +390,7 @@
         }
         .feedback-actions {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 0.5rem;
             margin-top: 0.65rem;
         }
@@ -454,6 +489,12 @@
             margin-bottom: 1.5rem;
             line-height: 1.5;
         }
+        .doubling-card > p:first-of-type:not(.coworking-intro) {
+            display: none;
+        }
+        .doubling-card .coworking-intro {
+            display: block;
+        }
         .doubling-timer {
             font-size: 3rem;
             font-weight: 800;
@@ -482,6 +523,215 @@
         }
 
         /* ── Share / Accountability ── */
+        .duration-options {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.5rem;
+            margin: 1rem 0 1.25rem;
+        }
+        .duration-btn {
+            min-height: 44px;
+            border-radius: 12px;
+            border: 1.5px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .duration-btn.active {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            color: var(--accent-dark);
+        }
+        .duration-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+        .coworking-meta {
+            color: var(--text-tertiary);
+            font-size: 0.78rem;
+            line-height: 1.4;
+            margin: -0.25rem 0 1rem;
+        }
+        .coworking-room-line {
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+            margin-bottom: 1rem;
+        }
+        .coworking-chat-window {
+            width: 100%;
+            background: #f0f2f5;
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            margin-top: 1rem;
+            text-align: left;
+        }
+        .coworking-chat-header {
+            min-height: 56px;
+            background: #ffffff;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.7rem 0.85rem;
+        }
+        .chat-avatar-stack {
+            display: flex;
+            flex-shrink: 0;
+        }
+        .chat-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            background: var(--accent);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.76rem;
+            font-weight: 800;
+            margin-left: -8px;
+        }
+        .chat-avatar:first-child { margin-left: 0; }
+        .chat-title {
+            flex: 1;
+            min-width: 0;
+        }
+        .chat-title strong {
+            display: block;
+            font-size: 0.92rem;
+            line-height: 1.1;
+        }
+        .chat-title span {
+            display: block;
+            color: var(--text-tertiary);
+            font-size: 0.72rem;
+            margin-top: 0.15rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .chat-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 50%;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+        .coworking-messages {
+            height: min(44vh, 360px);
+            min-height: 250px;
+            overflow-y: auto;
+            padding: 0.85rem;
+            background:
+                linear-gradient(rgba(250, 249, 246, 0.72), rgba(250, 249, 246, 0.72)),
+                radial-gradient(circle at 20% 20%, rgba(91,154,107,0.12), transparent 22%),
+                #eef1ea;
+        }
+        .chat-message {
+            display: flex;
+            flex-direction: column;
+            margin: 0 0 0.65rem;
+            max-width: 84%;
+        }
+        .chat-message.user {
+            margin-left: auto;
+            align-items: flex-end;
+        }
+        .chat-message.system {
+            max-width: 100%;
+            align-items: center;
+        }
+        .chat-sender {
+            color: var(--text-tertiary);
+            font-size: 0.68rem;
+            font-weight: 700;
+            margin: 0 0 0.16rem 0.35rem;
+        }
+        .chat-bubble {
+            border-radius: 18px;
+            border-bottom-left-radius: 5px;
+            background: #fff;
+            color: var(--text);
+            padding: 0.55rem 0.72rem;
+            box-shadow: var(--shadow-sm);
+            font-size: 0.86rem;
+            line-height: 1.35;
+            word-wrap: break-word;
+        }
+        .chat-message.user .chat-bubble {
+            background: #d9fdd3;
+            border-bottom-left-radius: 18px;
+            border-bottom-right-radius: 5px;
+        }
+        .chat-message.system .chat-bubble {
+            background: rgba(255,255,255,0.72);
+            color: var(--text-secondary);
+            border-radius: 100px;
+            text-align: center;
+            font-size: 0.74rem;
+            padding: 0.4rem 0.7rem;
+        }
+        .coworking-chat-form {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.65rem;
+            background: #ffffff;
+            border-top: 1px solid var(--border-light);
+        }
+        .coworking-chat-form input {
+            flex: 1;
+            min-width: 0;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            border-radius: 100px;
+            padding: 0.72rem 0.9rem;
+            font-family: var(--font);
+            font-size: 0.9rem;
+            outline: none;
+        }
+        .chat-send {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: none;
+            background: var(--accent);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 800;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .chat-send:disabled,
+        .coworking-chat-form input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .chat-reopen {
+            width: 100%;
+            margin-top: 1rem;
+        }
+        .chat-lock-note {
+            display: none;
+            color: var(--accent-dark);
+            background: var(--accent-light);
+            border-top: 1px solid rgba(91,154,107,0.18);
+            padding: 0.55rem 0.75rem;
+            font-size: 0.78rem;
+            text-align: center;
+        }
+        .chat-lock-note.active { display: block; }
+
         .share-bar {
             background: var(--surface);
             border: 1px solid var(--border-light);
@@ -534,6 +784,47 @@
             margin-top: 0.75rem;
             text-align: center;
         }
+        .choice-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(20, 28, 24, 0.38);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            z-index: 80;
+        }
+        .choice-dialog {
+            width: min(360px, 100%);
+            background: var(--surface);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            padding: 1.2rem;
+            text-align: center;
+        }
+        .choice-dialog h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.45rem;
+            color: var(--text);
+        }
+        .choice-dialog p {
+            color: var(--text-secondary);
+            font-size: 0.88rem;
+            line-height: 1.45;
+            margin-bottom: 1rem;
+        }
+        .choice-actions {
+            display: grid;
+            gap: 0.55rem;
+        }
+        .trial-note {
+            color: var(--text-tertiary);
+            font-size: 0.78rem;
+            line-height: 1.45;
+            text-align: center;
+            margin-top: 1rem;
+        }
         @media (max-width: 380px) {
             .feedback-actions { grid-template-columns: 1fr; }
         }
@@ -544,9 +835,10 @@
     <div class="app">
         <!-- Header -->
         <header class="app-header">
-            <img src="logo.png" alt="Unclump">
+            <img class="trial-logo" src="logo.png" alt="Unclump">
+            <div class="trial-badge">Private Trial</div>
             <div class="header-actions">
-                <button class="icon-btn" id="doublingBtn" onclick="showDoubling()" title="Body doubling">
+                <button class="icon-btn" id="doublingBtn" onclick="showDoubling()" title="Coworking">
                     👥
                 </button>
             </div>
@@ -572,6 +864,7 @@
                     </div>
                     <div class="error-banner hidden" id="inputError"></div>
                 </div>
+                <p class="trial-note">Private trial. When AI planning is unavailable, it falls back to the built-in browser planner.</p>
 
                 <div class="recent-tasks hidden" id="recentTasks">
                     <div class="label">Recent</div>
@@ -586,7 +879,7 @@
                 <div class="loading-dots">
                     <span></span><span></span><span></span>
                 </div>
-                <p>Breaking this down into tiny steps...</p>
+                <p>Reading the task and building the route...</p>
             </div>
         </div>
 
@@ -595,8 +888,10 @@
             <div class="steps-screen">
                 <div class="step-progress-row" id="stepDots"></div>
                 <div class="session-insight" id="sessionInsight">
-                    <div class="label" id="blockLabel">Stuck point</div>
-                    <div class="reason" id="blockReason">Finding the smallest safe entry point.</div>
+                    <div class="label" id="blockLabel">Planning route</div>
+                    <div class="reason" id="blockReason">Deciding the size of this task.</div>
+                    <div class="session-goal hidden" id="sessionGoal"></div>
+                    <div class="session-stop hidden" id="sessionStop"></div>
                 </div>
                 <div class="step-card">
                     <div class="step-number" id="stepBadge">Step 1 of 5</div>
@@ -624,12 +919,8 @@
                         </button>
                     </div>
                     <div class="feedback-actions">
-                        <button class="btn btn-secondary" onclick="sendFeedback('too_hard')">Too hard</button>
                         <button class="btn btn-secondary" onclick="sendFeedback('need_smaller')">Make smaller</button>
                         <button class="btn btn-secondary" onclick="sendFeedback('distracted')">I drifted</button>
-                        <button class="btn btn-secondary" onclick="getSupportNudge('nudge')">Nudge me</button>
-                        <button class="btn btn-secondary" onclick="sendFeedback('not_right')">Wrong step</button>
-                        <button class="btn btn-secondary" onclick="showDoubling()">Body double</button>
                     </div>
                 </div>
                 <div class="skip-hint hidden" id="skipHint">
@@ -679,25 +970,73 @@
             <div class="doubling-screen">
                 <div class="doubling-card">
                     <div class="icon">👥</div>
-                    <h2>Work Together</h2>
-                    <p>You're not alone. Others are working alongside you right now — quietly, cameras off, just presence.</p>
-                    <div class="doubling-timer" id="doublingTimer">25:00</div>
+                    <h2>Coworking</h2>
+                    <p class="coworking-intro">Pick a length and work alongside a simulated quiet group.</p>
+                    <div class="duration-options" id="durationOptions">
+                        <button class="duration-btn" data-minutes="10" onclick="selectCoworkingLength(10)">10 min</button>
+                        <button class="duration-btn active" data-minutes="30" onclick="selectCoworkingLength(30)">30 min</button>
+                        <button class="duration-btn" data-minutes="60" onclick="selectCoworkingLength(60)">1 hour</button>
+                    </div>
+                    <div class="coworking-meta" id="coworkingMeta">Simulated coworking room</div>
+                    <div class="doubling-timer" id="doublingTimer">30:00</div>
                     <div class="doubling-presence">
                         <div class="presence-dot"></div>
                         <div class="presence-dot"></div>
                         <div class="presence-dot"></div>
                     </div>
-                    <p style="color:var(--text-tertiary);font-size:0.8rem;">3 people working nearby</p>
+                    <p class="coworking-room-line" id="coworkingRoomLine">Ready when you are.</p>
                     <button class="btn btn-primary" id="doublingStartBtn" onclick="startDoubling()">
-                        Start 25 min session
+                        Start coworking
                     </button>
                     <button class="btn btn-secondary" id="doublingStopBtn" onclick="stopDoubling()" style="margin-top:0.5rem;">
                         End session
                     </button>
                 </div>
+                <div class="coworking-chat-window hidden" id="coworkingChatWindow">
+                    <div class="coworking-chat-header">
+                        <div class="chat-avatar-stack" id="chatAvatarStack"></div>
+                        <div class="chat-title">
+                            <strong>Group chat</strong>
+                            <span id="chatSubtitle">Simulated coworking companions</span>
+                        </div>
+                        <button class="chat-close" onclick="closeCoworkingChat()" aria-label="Close chat">x</button>
+                    </div>
+                    <div class="coworking-messages" id="coworkingMessages"></div>
+                    <div class="chat-lock-note" id="chatLockNote"></div>
+                    <form class="coworking-chat-form" onsubmit="sendCoworkingMessage(event)">
+                        <input type="text" id="coworkingChatInput" maxlength="240" autocomplete="off" placeholder="Message the room">
+                        <button class="chat-send" id="coworkingSendBtn" type="submit">^</button>
+                    </form>
+                </div>
+                <button class="btn btn-secondary chat-reopen hidden" id="chatReopenBtn" onclick="openCoworkingChat()">
+                    Open group chat
+                </button>
                 <button class="btn btn-secondary" onclick="closeDoubling()" style="margin-top:1rem;border:none;background:transparent;color:var(--text-tertiary);font-size:0.82rem;">
                     ← Back to app
                 </button>
+            </div>
+        </div>
+
+        <div class="choice-overlay hidden" id="driftDialog">
+            <div class="choice-dialog">
+                <h3 id="driftTitle">That's okay.</h3>
+                <p>Attention moved. Bring it back without making it a whole drama.</p>
+                <div class="choice-actions">
+                    <button class="btn btn-primary" onclick="driftPickUp()">Pick up where we left off</button>
+                    <button class="btn btn-secondary" onclick="driftStartOver()">Start over</button>
+                    <button class="btn btn-secondary" onclick="driftNewTask()">New task</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="choice-overlay hidden" id="resumeDialog">
+            <div class="choice-dialog">
+                <h3>Looks like the same mission.</h3>
+                <p id="resumeText">You have progress saved for a similar task.</p>
+                <div class="choice-actions">
+                    <button class="btn btn-primary" onclick="resumeSavedTask()">Pick up where we left off</button>
+                    <button class="btn btn-secondary" onclick="startFreshTask()">Start fresh</button>
+                </div>
             </div>
         </div>
     </div>
@@ -707,11 +1046,63 @@
         const API_URL = ['localhost', '127.0.0.1'].includes(window.location.hostname)
             ? 'http://localhost:8000'
             : 'https://unclump-api.onrender.com';
+        const USE_BROWSER_TRIAL = false;
+        let backendAiAvailable = null;
         let currentSession = null;
         let steps = [], currentStep = 0, timerInterval = null;
         let secondsLeft = 0, totalSeconds = 0, startedAt = null;
         let doublingInterval = null, doublingSeconds = 25 * 60;
+        let coworkingSelectedMinutes = 30;
+        let coworkingActive = false;
+        let coworkingCoworkers = [];
+        let coworkingMessages = [];
+        let coworkingMessageTimers = [];
+        let coworkingBotMessageCount = 0;
+        let coworkingPassiveLimit = 5;
+        let coworkingUserInteracted = false;
+        let coworkingUserMessageTimes = [];
+        let coworkingChatLockedUntil = 0;
         let taskHistory = JSON.parse(localStorage.getItem('unclump_history') || '[]');
+        let pendingResumeTask = null;
+        let pendingResumeThread = null;
+
+        const TASK_THREAD_KEY = 'unclump_task_threads';
+        const PLAN_SUBTITLES = {
+            small: "Piece of Cake - You've got this one.",
+            medium: "Let's break it down - we can handle this in one go if we break it into smaller chunks.",
+            large: "Overwhelming - this may feel too large to do in one go, let's do it over multiple sessions together."
+        };
+        const DRIFT_MESSAGES = [
+            "That's okay.",
+            "It happens.",
+            "No damage done.",
+            "Good catch. Bring it back.",
+            "Reset, then move."
+        ];
+
+        const COWORKER_NAMES = [
+            'Maya', 'Jess', 'Rina', 'Sam', 'Tasha', 'Noor', 'Ari', 'Leah',
+            'Nate', 'Priya', 'Cam', 'Zoe', 'Ivy', 'Remy', 'Lena'
+        ];
+        const COWORKER_TASKS = [
+            'clearing three emails',
+            'opening a messy draft',
+            'sorting receipts',
+            'starting laundry',
+            'making one phone call',
+            'tidying one desk corner',
+            'reading one course page',
+            'booking an appointment',
+            'washing five dishes',
+            'planning dinner badly'
+        ];
+        const COWORKER_PERSONAS = [
+            { persona: 'tiny-step realist', quirk: 'uses_2' },
+            { persona: 'laughs easily', quirk: 'lol' },
+            { persona: 'gentle encourager', quirk: 'emoji' },
+            { persona: 'messy starter', quirk: 'typos' },
+            { persona: 'quiet checklist person', quirk: 'checklist' }
+        ];
 
         // ── Screens ──
         function show(id) {
@@ -758,10 +1149,582 @@
         }
 
         // ── Unclump ──
-        async function unclump() {
+        const BLOCK_LABELS = {
+            overwhelm: PLAN_SUBTITLES.medium,
+            unclear_next_step: 'Unclear next step',
+            shame: 'Shame spiral',
+            low_energy: 'Low energy',
+            avoidance: 'Avoidance',
+            sensory: 'Sensory friction',
+            emotional: 'Emotional load'
+        };
+
+        const BLOCK_REASONS = {
+            overwhelm: 'This needs a route, not more staring at the whole thing.',
+            unclear_next_step: 'The next move is not obvious yet, so we are making it visible.',
+            shame: 'Pressure has been stealing motion. We are using messy progress instead.',
+            low_energy: 'Energy is low, so the first move has to create momentum fast.',
+            avoidance: 'The task is easier to face after one low-commitment contact.',
+            sensory: 'The setup is adding drag. Reduce friction, then move.',
+            emotional: 'This has feeling attached, but action can still start.'
+        };
+
+        function makeId() {
+            const suffix = window.crypto && crypto.randomUUID
+                ? crypto.randomUUID()
+                : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+            return `trial-${suffix}`;
+        }
+
+        function taskLabel(task, maxLength = 80) {
+            const label = task.trim().replace(/\s+/g, ' ');
+            if (!label) return 'this task';
+            return label.length > maxLength ? label.slice(0, maxLength - 3).trimEnd() + '...' : label;
+        }
+
+        function includesAny(text, terms) {
+            return terms.some(term => text.includes(term));
+        }
+
+        function classifyTaskSize(task, contextText = '') {
+            const text = `${task} ${contextText}`.toLowerCase();
+            if (includesAny(text, [
+                'start a company', 'start company', 'start a business', 'launch a business',
+                'build a business', 'write a book', 'move house', 'change career',
+                'get a degree', 'build an app', 'launch a product', 'plan a wedding',
+                'renovate', 'sort my life'
+            ])) return 'large';
+            if (includesAny(text, [
+                'leave the house', 'go outside', 'get out the door', 'take the bins out',
+                'take out the bin', 'brush teeth', 'brush my teeth', 'shower',
+                'get dressed', 'put shoes on', 'stand up', 'drink water'
+            ])) return 'small';
+            const words = task.toLowerCase().match(/\w+/g) || [];
+            if (words.length <= 4 && !includesAny(text, ['project', 'business', 'company', 'tax', 'essay', 'report', 'application'])) {
+                return 'small';
+            }
+            return 'medium';
+        }
+
+        function subtitleForTaskSize(size) {
+            return PLAN_SUBTITLES[size] || PLAN_SUBTITLES.medium;
+        }
+
+        function planningModeForTaskSize(size) {
+            return size === 'large'
+                ? 'multi_session_project'
+                : size === 'small'
+                    ? 'single_burst'
+                    : 'one_session_steps';
+        }
+
+        function sessionGoalForTask(task, size) {
+            const label = taskLabel(task, 70);
+            if (size === 'small') return `Finish the immediate task: ${label}.`;
+            if (size === 'large') return `Create the first saved checkpoint for ${label}.`;
+            return `Move ${label} from stuck to visibly underway.`;
+        }
+
+        function stoppingPointForTask(task, size) {
+            if (size !== 'large') return null;
+            return 'Stop when the first project note is saved and the next concrete action is named.';
+        }
+
+        function tinyEntryActionForText(task) {
+            const text = task.toLowerCase();
+            if (includesAny(text, ['email', 'message', 'reply', 'inbox', 'dm', 'whatsapp'])) return 'Open the email, message, or inbox without replying yet.';
+            if (includesAny(text, ['clean', 'tidy', 'room', 'flat', 'house', 'desk', 'kitchen'])) return 'Pick up one item you can see.';
+            if (includesAny(text, ['tax', 'form', 'admin', 'paperwork', 'application'])) return 'Open the folder, app, or website for this admin task.';
+            if (includesAny(text, ['write', 'essay', 'report', 'proposal', 'draft', 'blog'])) return 'Open a blank note or the document for this writing task.';
+            if (includesAny(text, ['call', 'phone', 'ring', 'appointment', 'book'])) return 'Open the contact, number, or booking page.';
+            if (includesAny(text, ['laundry', 'washing', 'clothes'])) return 'Pick up one piece of laundry.';
+            if (includesAny(text, ['dishes', 'washing up', 'plates', 'sink'])) return 'Pick up one dish, cup, or piece of cutlery.';
+            if (includesAny(text, ['study', 'revise', 'revision', 'learn', 'course', 'homework'])) return 'Open the notes, book, course page, or homework file.';
+            return `Open a note and type: "${taskLabel(task)}".`;
+        }
+
+        function supportMessageForTask(task, label) {
+            const text = task.toLowerCase();
+            if (includesAny(text, ['email', 'message', 'reply', 'inbox', 'dm', 'whatsapp'])) return `For "${label}", get the reply visible first. Polish later.`;
+            if (includesAny(text, ['clean', 'tidy', 'room', 'flat', 'house', 'desk', 'kitchen'])) return `For "${label}", make one visible patch different.`;
+            if (includesAny(text, ['tax', 'form', 'admin', 'paperwork', 'application'])) return `For "${label}", name the first missing document or answer.`;
+            if (includesAny(text, ['write', 'essay', 'report', 'proposal', 'draft', 'blog'])) return `For "${label}", rough words beat a blank page.`;
+            if (includesAny(text, ['call', 'phone', 'ring', 'appointment', 'book'])) return `For "${label}", get the number, page, or slot in front of you.`;
+            if (includesAny(text, ['laundry', 'washing', 'clothes'])) return `For "${label}", move the next small load.`;
+            if (includesAny(text, ['dishes', 'washing up', 'plates', 'sink'])) return `For "${label}", clear one group.`;
+            if (includesAny(text, ['study', 'revise', 'revision', 'learn', 'course', 'homework'])) return `For "${label}", pick one heading or question and work that.`;
+            return `For "${label}", make the task visible, then move.`;
+        }
+
+        function guessBlockType(task) {
+            const text = task.toLowerCase();
+            if (/tired|exhausted|drained|low energy|can't move|cant move/.test(text)) return 'low_energy';
+            if (/ashamed|guilty|behind|late|failed|embarrassed|avoid|avoiding|putting off|procrastinating/.test(text)) return 'avoidance';
+            if (/don't know|dont know|where to start|unclear|confused|too much/.test(text)) return 'unclear_next_step';
+            if (/noisy|messy|bright|sensory|smell|sound/.test(text)) return 'sensory';
+            if (/scared|anxious|upset|angry|sad|fear/.test(text)) return 'emotional';
+            return 'overwhelm';
+        }
+
+        function baseStepsFor(task, blockType, taskSize = classifyTaskSize(task)) {
+            const text = task.toLowerCase();
+            const label = taskLabel(task);
+            if (taskSize === 'large') {
+                if (includesAny(text, ['company', 'business', 'startup', 'product'])) {
+                    return [
+                        ['Open a note and write the business idea in one rough sentence.', 180],
+                        ['Write who this helps in one plain sentence.', 180],
+                        ['List three unknowns: customer, offer, money, legal, or time.', 300],
+                        ['Circle the one unknown that blocks the next move most.', 120],
+                        ['Write the next research or admin action under that circle.', 180],
+                        ['Stop with the note saved and the next action named.', 60]
+                    ];
+                }
+                return [
+                    [`Open a note and title it: "${label}".`, 120],
+                    ['Write what finished would look like in one rough sentence.', 240],
+                    ['List the first three chunks this project probably contains.', 300],
+                    ['Pick the chunk that would unlock the most progress this week.', 180],
+                    ['Write the next visible action for that chunk.', 180],
+                    ['Stop with the project note saved and the next action named.', 60]
+                ];
+            }
+            if (includesAny(text, ['leave the house', 'go outside', 'get out the door'])) {
+                return [
+                    ['Stand up and put your phone, keys, wallet, or bag in one place.', 120],
+                    ['Check the one thing you actually need to take with you.', 90],
+                    ['Shoes on, door open, move. Momentum beats mood.', 120]
+                ];
+            }
+            if (blockType === 'low_energy') {
+                return [
+                    ['Put both feet on the floor and sit forward.', 30],
+                    [`Take one breath and keep "${label}" as the only job.`, 30],
+                    [tinyEntryActionForText(task), 120],
+                    ['Look at the task page or object without fixing it yet.', 60],
+                    ['Move one task-related item, tab, or sentence into view.', 120]
+                ];
+            }
+            if (includesAny(text, ['email', 'message', 'reply', 'inbox', 'dm', 'whatsapp'])) {
+                return [
+                    ['Open the message and read it once without replying yet.', 120],
+                    ['Type a rough first sentence. It can be blunt; polish comes later.', 180],
+                    ['Answer one actual question or add one useful detail.', 240],
+                    ['Read it once for sense, not perfection.', 120],
+                    ['Send it, or save the draft with the next missing detail named.', 60]
+                ];
+            }
+            if (includesAny(text, ['clean', 'tidy', 'room', 'flat', 'house', 'desk', 'kitchen'])) {
+                return [
+                    ['Pick one small zone: desk corner, sink edge, floor patch, or chair.', 60],
+                    ['Remove rubbish or obvious wrong-place items from that zone.', 240],
+                    ['Put the next five items where they belong or into one temporary pile.', 300],
+                    ['Wipe, clear, or straighten the visible surface you opened up.', 180],
+                    ['Stop when that one zone looks different. That is the win.', 60]
+                ];
+            }
+            if (includesAny(text, ['tax', 'form', 'admin', 'paperwork', 'application'])) {
+                return [
+                    ['Open the form, website, folder, or email thread.', 120],
+                    ['Find the first missing document, answer, or decision.', 240],
+                    ['Write that missing piece on a note in plain language.', 120],
+                    ['Find it, request it, or write exactly where to get it next.', 300],
+                    ['Stop with the page open and the next missing piece named.', 60]
+                ];
+            }
+            if (includesAny(text, ['write', 'essay', 'report', 'proposal', 'draft', 'blog'])) {
+                return [
+                    ['Open the document and write the ugly version of the point.', 180],
+                    ['Add three bullets for what this needs to cover.', 240],
+                    ['Turn the easiest bullet into rough sentences.', 420],
+                    ['Mark one gap with a placeholder instead of stopping.', 60],
+                    ['Stop with words on the page and the next bullet marked.', 60]
+                ];
+            }
+            if (includesAny(text, ['call', 'phone', 'ring', 'appointment', 'book'])) {
+                return [
+                    ['Open the number, contact, booking page, or calendar.', 90],
+                    ['Write the one sentence you need to say or ask.', 120],
+                    ['Check the next available time, slot, or opening hours.', 180],
+                    ['Make the call or choose the slot.', 300],
+                    ['Write down the result or the next time to try.', 90]
+                ];
+            }
+            if (includesAny(text, ['laundry', 'washing', 'clothes'])) {
+                return [
+                    ['Pick one laundry zone: floor pile, basket, machine, or drying rack.', 60],
+                    ['Move one small load to the next place it belongs.', 240],
+                    ['Start the machine, hang five items, or fold five items.', 300],
+                    ['Reset the laundry area enough that the next move is obvious.', 120]
+                ];
+            }
+            if (includesAny(text, ['dishes', 'washing up', 'plates', 'sink'])) {
+                return [
+                    ['Move the first small group of dishes beside the sink or dishwasher.', 120],
+                    ['Wash or load that group.', 300],
+                    ['Clear the next visible group if you still have momentum.', 240],
+                    ['Stop when the sink or counter has one obvious improvement.', 60]
+                ];
+            }
+            if (includesAny(text, ['study', 'revise', 'revision', 'learn', 'course', 'homework'])) {
+                return [
+                    ['Open the notes, book, course page, or homework file.', 90],
+                    ['Pick one heading, question, or example.', 120],
+                    ['Work that one item until you can write a rough answer or keyword.', 420],
+                    ['Mark the next heading or question for later.', 60]
+                ];
+            }
+            if (blockType === 'unclear_next_step') {
+                return [
+                    [`Open a note and type: "${label}".`, 60],
+                    ['Circle one word that points to a real place, person, object, or tab.', 60],
+                    ['Open or move that place, person, object, page, or tab into view.', 120],
+                    ['Do one useful action with it for five minutes.', 300]
+                ];
+            }
+            return [
+                [`Open a note and write: "${label}".`, 90],
+                ['Write the first visible place, person, object, or tab connected to it.', 120],
+                ['Bring that thing into view.', 120],
+                ['Do one useful action with it for five minutes.', 300],
+                ['Stop with the next move written down.', 60]
+            ];
+        }
+
+        function supportNoteFor(blockType, isFirst) {
+            if (!isFirst) return 'Good. Keep moving while the route is visible.';
+            return {
+                overwhelm: 'This turns the mountain into the next visible grip.',
+                unclear_next_step: 'This gives the task a front door.',
+                shame: 'Messy progress beats frozen perfection.',
+                low_energy: 'Use the least movement that still creates momentum.',
+                avoidance: 'Make contact first. Commitment can come after.',
+                sensory: 'Reduce the friction, then move.',
+                emotional: 'Let the feeling ride along while the action starts.'
+            }[blockType] || 'This makes the next move visible enough to do.';
+        }
+
+        function startBrowserTrialSession(task, context = {}) {
+            const contextText = [context.prior_progress, context.previous_stopping_point, context.recent_friction].filter(Boolean).join(' ');
+            const taskSize = classifyTaskSize(task, contextText);
+            const blockType = taskSize === 'small' ? 'unclear_next_step' : guessBlockType(task);
+            const planningMode = planningModeForTaskSize(taskSize);
+            const sessionGoal = sessionGoalForTask(task, taskSize);
+            const stoppingPoint = stoppingPointForTask(task, taskSize);
+            const microSteps = baseStepsFor(task, blockType, taskSize).slice(0, taskSize === 'small' ? 3 : 6).map(([description, estimatedSeconds], index) => ({
+                step: index + 1,
+                description,
+                estimated_seconds: Math.max(15, Math.min(25 * 60, estimatedSeconds)),
+                support_note: supportNoteFor(blockType, index === 0),
+                is_entry_point: index === 0
+            }));
+            return decorateSession({
+                session_id: makeId(),
+                status: 'active',
+                original_task: task,
+                block_type: blockType,
+                block_label: subtitleForTaskSize(taskSize),
+                block_reason: taskSize === 'large'
+                    ? 'This is not one task. We are creating the first useful checkpoint and saving progress.'
+                    : taskSize === 'small'
+                        ? 'This is smaller than the resistance around it. Use the route and move.'
+                        : 'This can be handled in one session when the steps are concrete.',
+                task_size: taskSize,
+                planning_mode: planningMode,
+                session_goal: sessionGoal,
+                stopping_point: stoppingPoint,
+                progress_notes: [
+                    `Task classified as ${taskSize}.`,
+                    sessionGoal,
+                    ...(context.prior_progress ? [`Previous progress: ${context.prior_progress}`] : [])
+                ],
+                next_session_prompt: taskSize === 'large'
+                    ? `Review the saved notes for "${taskLabel(task, 70)}" and continue from the named next action.`
+                    : null,
+                entry_hook: `No waiting for perfect motivation. Move "${taskLabel(task, 70)}" one step forward.`,
+                reflection_prompt: 'What moved this forward?',
+                current_step_index: 0,
+                completed_steps: 0,
+                total_steps: microSteps.length,
+                micro_steps: microSteps,
+                feedback_options: ['done', 'need_smaller', 'distracted', 'skip'],
+                nudge: null,
+                session_summary: null
+            });
+        }
+
+        function decorateSession(session) {
+            session.total_steps = session.micro_steps.length;
+            session.current_step = session.status === 'complete'
+                ? null
+                : session.micro_steps[session.current_step_index] || null;
+            return session;
+        }
+
+        function browserReplanRemainingSession() {
+            const index = currentSession.current_step_index || 0;
+            const current = currentSession.micro_steps[index];
+            const context = {
+                recent_friction: `Make smaller was tapped on: ${current ? current.description : 'current step'}`,
+                prior_progress: (currentSession.progress_notes || []).slice(-6).join('; '),
+                previous_stopping_point: currentSession.stopping_point || ''
+            };
+            const replanned = startBrowserTrialSession(currentSession.original_task, context);
+            const replacement = browserAdaptiveStep('need_smaller');
+            if (replanned.micro_steps.length) {
+                replanned.micro_steps[0] = {
+                    ...replanned.micro_steps[0],
+                    description: replacement[0],
+                    estimated_seconds: replacement[1],
+                    support_note: replacement[2],
+                    adapted_from: current ? current.description : '',
+                    adapted_for: 'need_smaller'
+                };
+            }
+            const kept = currentSession.micro_steps.slice(0, index);
+            const remaining = replanned.micro_steps.slice(0, 6).map((step, offset) => ({
+                ...step,
+                step: index + offset + 1
+            }));
+            currentSession.micro_steps = kept.concat(remaining);
+            currentSession.total_steps = currentSession.micro_steps.length;
+            currentSession.task_size = replanned.task_size;
+            currentSession.planning_mode = replanned.planning_mode;
+            currentSession.block_label = replanned.block_label;
+            currentSession.block_reason = replanned.block_reason;
+            currentSession.session_goal = replanned.session_goal;
+            currentSession.stopping_point = replanned.stopping_point;
+            currentSession.next_session_prompt = replanned.next_session_prompt;
+            currentSession.progress_notes = (currentSession.progress_notes || []).concat('Replanned the remaining route into smaller moves.');
+            currentSession.nudge = 'Smaller route loaded. Same mission.';
+            return decorateSession(currentSession);
+        }
+
+        function browserAdaptiveStep(feedback) {
+            const blockType = currentSession.block_type;
+            const task = currentSession.original_task.toLowerCase();
+            if (feedback === 'distracted') {
+                return ['Look away from the screen, take one breath, then put the task back in view.', 20, 'Attention wandered. No drama. Bring the task back into the room.'];
+            }
+            if (feedback === 'not_right') {
+                const description = includesAny(task, ['email', 'message', 'reply', 'inbox', 'dm', 'whatsapp'])
+                    ? "Open the message and read the sender's name."
+                    : tinyEntryActionForText(currentSession.original_task);
+                return [description, 15, 'Changing direction is allowed. The goal is to find a truer entry point.'];
+            }
+            if (blockType === 'shame') {
+                return ['Say: messy counts. Then touch the task for twenty seconds.', 20, 'Messy progress breaks the freeze.'];
+            }
+            if (task.includes('email') || task.includes('message') || task.includes('reply')) {
+                return ["Open the message and read the sender's name.", 15, 'This lowers the task to one concrete point of contact.'];
+            }
+            if (task.includes('clean') || task.includes('tidy') || task.includes('room')) {
+                return ['Pick up one item you can see.', 15, 'This makes progress visible without asking for the whole room.'];
+            }
+            if (task.includes('tax') || task.includes('form') || task.includes('admin')) {
+                return ['Open the folder, app, or page for this task.', 15, 'This starts with finding the doorway, not solving the whole task.'];
+            }
+            if (task.includes('write') || task.includes('essay') || task.includes('report')) {
+                return ['Open a blank note and type one rough word.', 15, 'A rough word is enough to break the blank-page seal.'];
+            }
+            return [tinyEntryActionForText(currentSession.original_task), 15, 'This lowers the task to one concrete point of contact.'];
+        }
+
+        function handleBrowserTrialFeedback(feedback) {
+            if (!currentSession || currentSession.status === 'complete') return currentSession;
+            const index = currentSession.current_step_index;
+            const step = currentSession.micro_steps[index];
+            currentSession.nudge = null;
+            if (feedback === 'done') {
+                currentSession.completed_steps += 1;
+                if (step) {
+                    currentSession.progress_notes = (currentSession.progress_notes || []).concat(`Completed: ${step.description}`);
+                }
+                currentSession.current_step_index += 1;
+                currentSession.nudge = 'Good. That counted. Next move.';
+            } else if (feedback === 'skip') {
+                currentSession.current_step_index += 1;
+                currentSession.nudge = 'Skipped. Fine. Keep momentum with the next useful move.';
+            } else if (feedback === 'need_smaller') {
+                browserReplanRemainingSession();
+            } else if (step) {
+                const [description, estimatedSeconds, supportNote] = browserAdaptiveStep(feedback);
+                currentSession.micro_steps[index] = {
+                    ...step,
+                    description,
+                    estimated_seconds: estimatedSeconds,
+                    support_note: supportNote,
+                    adapted_from: step.description,
+                    adapted_for: feedback
+                };
+                currentSession.nudge = 'Good catch. Smaller route, same mission.';
+            }
+            if (currentSession.current_step_index >= currentSession.micro_steps.length) {
+                currentSession.status = 'complete';
+                currentSession.session_summary = currentSession.planning_mode === 'multi_session_project'
+                    ? `Session checkpoint reached: ${currentSession.completed_steps} of ${currentSession.micro_steps.length} steps done. Progress is recorded; next time, pick up from: ${currentSession.stopping_point || 'the next named action'}.`
+                    : `You completed ${currentSession.completed_steps} of ${currentSession.micro_steps.length} steps. Good. That task is no longer frozen.`;
+                currentSession.nudge = 'Done for this round. Progress recorded.';
+            }
+            return decorateSession(currentSession);
+        }
+
+        function isBrowserTrialSession() {
+            return currentSession && String(currentSession.session_id || '').startsWith('trial-');
+        }
+
+        async function shouldUseBrowserTrial() {
+            if (USE_BROWSER_TRIAL) return true;
+            if (backendAiAvailable !== null) return !backendAiAvailable;
+            try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 2500);
+                const res = await fetch(`${API_URL}/`, { signal: controller.signal });
+                clearTimeout(timeout);
+                if (!res.ok) throw new Error('Backend unavailable');
+                const status = await res.json();
+                backendAiAvailable = Boolean(status.ai_provider_configured);
+                return !backendAiAvailable;
+            } catch (e) {
+                backendAiAvailable = false;
+                return true;
+            }
+        }
+
+        function loadTaskThreads() {
+            try {
+                return JSON.parse(localStorage.getItem(TASK_THREAD_KEY) || '[]');
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveTaskThreads(threads) {
+            localStorage.setItem(TASK_THREAD_KEY, JSON.stringify(threads.slice(0, 25)));
+        }
+
+        function taskTokens(task) {
+            const stop = new Set(['the', 'a', 'an', 'to', 'and', 'of', 'my', 'i', 'need', 'want', 'have', 'for', 'it']);
+            return new Set((task.toLowerCase().match(/\w+/g) || [])
+                .filter(word => word.length > 2 && !stop.has(word)));
+        }
+
+        function taskSimilarity(a, b) {
+            const aTokens = taskTokens(a);
+            const bTokens = taskTokens(b);
+            if (!aTokens.size || !bTokens.size) return 0;
+            let shared = 0;
+            aTokens.forEach(token => { if (bTokens.has(token)) shared++; });
+            return shared / Math.max(aTokens.size, bTokens.size);
+        }
+
+        function findSimilarThread(task) {
+            const threads = loadTaskThreads()
+                .filter(thread => thread.status === 'in_progress')
+                .sort((a, b) => (b.updated_at || 0) - (a.updated_at || 0));
+            const normalized = task.trim().toLowerCase();
+            return threads.find(thread => {
+                const original = (thread.canonical_task || '').toLowerCase();
+                return original === normalized
+                    || original.includes(normalized)
+                    || normalized.includes(original)
+                    || taskSimilarity(task, thread.canonical_task || '') >= 0.45;
+            }) || null;
+        }
+
+        function saveCurrentSessionProgress() {
+            if (!currentSession || !currentSession.original_task) return;
+            const threads = loadTaskThreads().filter(thread =>
+                thread.id !== (currentSession.task_thread_id || currentSession.session_id)
+            );
+            const isProject = currentSession.planning_mode === 'multi_session_project';
+            const status = currentSession.status === 'complete' && !isProject ? 'complete' : 'in_progress';
+            const thread = {
+                id: currentSession.task_thread_id || currentSession.session_id,
+                canonical_task: currentSession.original_task,
+                status,
+                planning_mode: currentSession.planning_mode,
+                task_size: currentSession.task_size,
+                session_goal: currentSession.session_goal,
+                stopping_point: currentSession.stopping_point,
+                next_session_prompt: currentSession.next_session_prompt,
+                progress_notes: currentSession.progress_notes || [],
+                session: currentSession,
+                updated_at: Date.now()
+            };
+            currentSession.task_thread_id = thread.id;
+            saveTaskThreads([thread].concat(threads));
+        }
+
+        function showResumeDialog(task, thread) {
+            pendingResumeTask = task;
+            pendingResumeThread = thread;
+            document.getElementById('resumeText').textContent =
+                `Saved progress: ${thread.stopping_point || thread.session_goal || thread.canonical_task}`;
+            document.getElementById('resumeDialog').classList.remove('hidden');
+        }
+
+        function hideResumeDialog() {
+            document.getElementById('resumeDialog').classList.add('hidden');
+        }
+
+        function resumeSavedTask() {
+            const task = pendingResumeTask || (pendingResumeThread && pendingResumeThread.canonical_task) || document.getElementById('taskInput').value.trim();
+            const thread = pendingResumeThread;
+            hideResumeDialog();
+            pendingResumeTask = null;
+            pendingResumeThread = null;
+            document.getElementById('taskInput').value = task;
+            unclump({ skipResume: true, resumeThread: thread });
+        }
+
+        function startFreshTask() {
+            const task = pendingResumeTask || document.getElementById('taskInput').value.trim();
+            hideResumeDialog();
+            pendingResumeTask = null;
+            pendingResumeThread = null;
+            document.getElementById('taskInput').value = task;
+            unclump({ skipResume: true, forceFresh: true });
+        }
+
+        function browserSupportNudge(moment) {
+            const originalTask = currentSession ? currentSession.original_task : 'this task';
+            const label = taskLabel(originalTask, 70);
+            const step = currentSession && currentSession.current_step ? currentSession.current_step.description : tinyEntryActionForText(originalTask);
+            if (moment === 'distracted') {
+                return {
+                    message: `Attention wandered from "${label}". That is information, not a verdict.`,
+                    suggested_action: 'Look away from the screen, take one slow breath, then put the task page or object back in view.',
+                    reminder_after_minutes: 5,
+                    tone: 'gentle'
+                };
+            }
+            return {
+                message: supportMessageForTask(originalTask, label),
+                suggested_action: step,
+                reminder_after_minutes: 10,
+                tone: 'gentle'
+            };
+        }
+
+        async function unclump(options = {}) {
             const task = document.getElementById('taskInput').value.trim();
             if (!task) return showError('Tell us what you\'re stuck on first.');
             hideError();
+
+            if (!options.skipResume) {
+                const thread = findSimilarThread(task);
+                if (thread) {
+                    showResumeDialog(task, thread);
+                    return;
+                }
+            }
+
+            const resumeContext = options.resumeThread ? {
+                prior_progress: (options.resumeThread.progress_notes || []).join('; '),
+                previous_stopping_point: options.resumeThread.stopping_point || '',
+                recent_friction: options.resumeThread.next_session_prompt || ''
+            } : {};
 
             if (!taskHistory.includes(task)) {
                 taskHistory.unshift(task);
@@ -774,23 +1737,42 @@
             show('loadingScreen');
 
             try {
+                if (await shouldUseBrowserTrial()) {
+                    const data = startBrowserTrialSession(task, resumeContext);
+                    if (options.resumeThread) data.task_thread_id = options.resumeThread.id;
+                    applySession(data);
+                    saveCurrentSessionProgress();
+                    startedAt = Date.now();
+                    showStep();
+                    return;
+                }
                 const res = await fetch(API_URL + '/api/session/start', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         task,
-                        preferred_tone: 'gentle'
+                        preferred_tone: 'direct_motivational',
+                        prior_progress: resumeContext.prior_progress,
+                        previous_stopping_point: resumeContext.previous_stopping_point,
+                        recent_friction: resumeContext.recent_friction
                     })
                 });
                 if (!res.ok) throw new Error('Server error');
                 const data = await res.json();
                 if (!data.current_step) throw new Error('No current step returned');
+                if (options.resumeThread) data.task_thread_id = options.resumeThread.id;
                 applySession(data);
+                saveCurrentSessionProgress();
                 startedAt = Date.now();
                 showStep();
             } catch (e) {
-                showError('Something went wrong. The server might still be waking up — try again in a moment.');
-                show('inputScreen');
+                const data = startBrowserTrialSession(task, resumeContext);
+                if (options.resumeThread) data.task_thread_id = options.resumeThread.id;
+                applySession(data);
+                saveCurrentSessionProgress();
+                startedAt = Date.now();
+                toast('Using offline trial mode for this session.');
+                showStep();
             } finally {
                 document.getElementById('unclumpBtn').disabled = false;
             }
@@ -848,8 +1830,22 @@
             steps = currentSession.micro_steps || [];
             currentStep = currentSession.current_step_index || 0;
 
-            document.getElementById('blockLabel').textContent = currentSession.block_label || 'Stuck point';
-            document.getElementById('blockReason').textContent = currentSession.block_reason || currentSession.entry_hook || 'Finding the smallest safe entry point.';
+            document.getElementById('blockLabel').textContent = currentSession.block_label || subtitleForTaskSize(currentSession.task_size || 'medium');
+            document.getElementById('blockReason').textContent = currentSession.block_reason || currentSession.entry_hook || 'Route built. Start moving.';
+            const goalEl = document.getElementById('sessionGoal');
+            const stopEl = document.getElementById('sessionStop');
+            if (currentSession.session_goal) {
+                goalEl.textContent = `Goal: ${currentSession.session_goal}`;
+                goalEl.classList.remove('hidden');
+            } else {
+                goalEl.classList.add('hidden');
+            }
+            if (currentSession.stopping_point) {
+                stopEl.textContent = `Stopping point: ${currentSession.stopping_point}`;
+                stopEl.classList.remove('hidden');
+            } else {
+                stopEl.classList.add('hidden');
+            }
             document.getElementById('stepBadge').textContent = `Step ${step.step} of ${currentSession.total_steps}`;
             document.getElementById('stepDescription').textContent = step.description;
             document.getElementById('supportNote').textContent = step.support_note || currentSession.entry_hook || '';
@@ -863,7 +1859,7 @@
                 return `<div class="step-dot ${cls}"></div>`;
             }).join('');
 
-            secondsLeft = Math.max(10, Math.min(120, step.estimated_seconds));
+            secondsLeft = Math.max(15, Math.min(25 * 60, step.estimated_seconds));
             totalSeconds = secondsLeft;
             updateTimerDisplay();
             startTimer();
@@ -905,9 +1901,27 @@
             clearInterval(timerInterval);
             document.getElementById('skipBtn').classList.add('hidden');
             document.getElementById('skipHint').classList.add('hidden');
+
+            if (feedback === 'distracted') {
+                showDriftDialog();
+                return;
+            }
+
             setFeedbackDisabled(true);
 
             try {
+                if (USE_BROWSER_TRIAL || isBrowserTrialSession()) {
+                    const data = handleBrowserTrialFeedback(feedback);
+                    applySession(data);
+                    saveCurrentSessionProgress();
+                    if (data.nudge) toast(data.nudge);
+                    if (data.status === 'complete') {
+                        showDone();
+                    } else {
+                        showStep();
+                    }
+                    return;
+                }
                 const res = await fetch(`${API_URL}/api/session/${currentSession.session_id}/feedback`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -916,6 +1930,7 @@
                 if (!res.ok) throw new Error('Server error');
                 const data = await res.json();
                 applySession(data);
+                saveCurrentSessionProgress();
                 if (data.nudge) toast(data.nudge);
                 if (data.status === 'complete') {
                     showDone();
@@ -934,6 +1949,12 @@
             if (!currentSession) return;
             setFeedbackDisabled(true);
             try {
+                if (USE_BROWSER_TRIAL || isBrowserTrialSession()) {
+                    const data = browserSupportNudge(moment);
+                    document.getElementById('supportNote').textContent = `${data.message} ${data.suggested_action}`;
+                    toast(data.message);
+                    return;
+                }
                 const res = await fetch(`${API_URL}/api/support`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -949,7 +1970,9 @@
                 document.getElementById('supportNote').textContent = `${data.message} ${data.suggested_action}`;
                 toast(data.message);
             } catch (e) {
-                toast('Try one breath, then one tiny visible move.');
+                const data = browserSupportNudge(moment);
+                document.getElementById('supportNote').textContent = `${data.message} ${data.suggested_action}`;
+                toast(data.message);
             } finally {
                 setFeedbackDisabled(false);
             }
@@ -969,6 +1992,39 @@
             sendFeedback('skip');
         }
 
+        function showDriftDialog() {
+            const title = DRIFT_MESSAGES[Math.floor(Math.random() * DRIFT_MESSAGES.length)];
+            document.getElementById('driftTitle').textContent = title;
+            document.getElementById('driftDialog').classList.remove('hidden');
+        }
+
+        function hideDriftDialog() {
+            document.getElementById('driftDialog').classList.add('hidden');
+        }
+
+        function driftPickUp() {
+            hideDriftDialog();
+            toast('Pick it back up. One move.');
+            showStep();
+        }
+
+        function driftStartOver() {
+            hideDriftDialog();
+            if (!currentSession) return;
+            currentSession.current_step_index = 0;
+            currentSession.completed_steps = 0;
+            currentSession.status = 'active';
+            currentSession.nudge = 'Fresh run. Same mission.';
+            applySession(decorateSession(currentSession));
+            saveCurrentSessionProgress();
+            showStep();
+        }
+
+        function driftNewTask() {
+            hideDriftDialog();
+            goBack();
+        }
+
         function goBack() {
             clearInterval(timerInterval);
             currentSession = null;
@@ -981,6 +2037,7 @@
         // ── Done ──
         function showDone() {
             clearInterval(timerInterval);
+            saveCurrentSessionProgress();
             show('doneScreen');
             const elapsed = Math.round((Date.now() - startedAt) / 60000);
             const completed = currentSession ? currentSession.completed_steps : steps.length;
@@ -1059,10 +2116,390 @@
         }
 
         // ── Init ──
+        // Coworking room engine. These declarations intentionally replace the
+        // older timer-only body-doubling handlers above.
+        function showDoubling() {
+            show('doublingScreen');
+            updateCoworkingDisplay();
+        }
+
+        function closeDoubling() {
+            const hasActiveSession = currentSession && currentSession.status !== 'complete';
+            show(hasActiveSession ? 'stepsScreen' : 'inputScreen');
+        }
+
+        function selectCoworkingLength(minutes) {
+            if (coworkingActive) return;
+            coworkingSelectedMinutes = minutes;
+            doublingSeconds = minutes * 60;
+            document.querySelectorAll('.duration-btn').forEach(btn => {
+                btn.classList.toggle('active', Number(btn.dataset.minutes) === minutes);
+            });
+            updateDoublingDisplay();
+        }
+
+        function startDoubling() {
+            if (coworkingActive) return;
+            coworkingActive = true;
+            doublingSeconds = coworkingSelectedMinutes * 60;
+            coworkingCoworkers = generateCoworkers();
+            coworkingMessages = [];
+            coworkingMessageTimers = [];
+            coworkingBotMessageCount = 0;
+            coworkingUserInteracted = false;
+            coworkingUserMessageTimes = [];
+            coworkingChatLockedUntil = 0;
+            coworkingPassiveLimit = randomInt(
+                coworkingSelectedMinutes === 10 ? 3 : 4,
+                coworkingSelectedMinutes === 60 ? 10 : 7
+            );
+
+            document.getElementById('doublingStartBtn').classList.add('hidden');
+            document.getElementById('doublingStopBtn').style.display = '';
+            document.querySelectorAll('.duration-btn').forEach(btn => btn.disabled = true);
+            document.getElementById('coworkingChatWindow').classList.remove('hidden');
+            document.getElementById('chatReopenBtn').classList.add('hidden');
+            document.getElementById('coworkingRoomLine').textContent =
+                `${coworkingCoworkers.length} simulated coworkers joined.`;
+
+            renderCoworkerHeader();
+            addCoworkingMessage('Room', 'Simulated coworkers are settling in. Pick one tiny move and begin.', 'system');
+            updateCoworkingDisplay();
+            updateCoworkingChatLock();
+            schedulePeriodicCoworkingMessage();
+
+            clearInterval(doublingInterval);
+            doublingInterval = setInterval(() => {
+                doublingSeconds--;
+                updateDoublingDisplay();
+                if (doublingSeconds <= 0) finishCoworkingSession();
+            }, 1000);
+        }
+
+        function stopDoubling() {
+            clearInterval(doublingInterval);
+            clearCoworkingTimers();
+            coworkingActive = false;
+            doublingSeconds = coworkingSelectedMinutes * 60;
+            document.getElementById('doublingStartBtn').classList.remove('hidden');
+            document.getElementById('doublingStopBtn').style.display = 'none';
+            document.getElementById('doublingStopBtn').textContent = 'End session';
+            document.querySelectorAll('.duration-btn').forEach(btn => btn.disabled = false);
+            document.getElementById('coworkingRoomLine').textContent = 'Ready when you are.';
+            updateDoublingDisplay();
+            updateCoworkingChatLock();
+        }
+
+        function finishCoworkingSession() {
+            clearInterval(doublingInterval);
+            clearCoworkingTimers();
+            coworkingActive = false;
+            document.getElementById('doublingTimer').textContent = 'Done!';
+            document.getElementById('doublingStopBtn').textContent = 'Great session';
+            document.querySelectorAll('.duration-btn').forEach(btn => btn.disabled = false);
+            addCoworkingMessage('Room', 'Session complete. Nice staying with it.', 'system');
+            updateCoworkingChatLock();
+        }
+
+        function updateDoublingDisplay() {
+            const remaining = Math.max(0, doublingSeconds);
+            const m = Math.floor(remaining / 60);
+            const s = remaining % 60;
+            document.getElementById('doublingTimer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+            updateCoworkingDisplay();
+            updateCoworkingChatLock();
+        }
+
+        function updateCoworkingDisplay() {
+            document.getElementById('coworkingMeta').textContent =
+                coworkingActive
+                    ? `${coworkingSelectedMinutes} min simulated coworking session`
+                    : 'Choose 10, 30, or 60 minutes';
+            document.getElementById('chatSubtitle').textContent =
+                coworkingCoworkers.length
+                    ? coworkingCoworkers.map(c => c.name).slice(0, 4).join(', ')
+                    : 'Simulated coworking companions';
+        }
+
+        function clearCoworkingTimers() {
+            coworkingMessageTimers.forEach(id => clearTimeout(id));
+            coworkingMessageTimers = [];
+        }
+
+        function getCoworkingTask() {
+            return currentSession && currentSession.original_task
+                ? currentSession.original_task
+                : (document.getElementById('taskInput').value.trim() || "today's task");
+        }
+
+        function generateCoworkers() {
+            const names = shuffled(COWORKER_NAMES);
+            const tasks = shuffled(COWORKER_TASKS);
+            return COWORKER_PERSONAS.map((template, index) => ({
+                name: names[index],
+                task: tasks[index],
+                persona: template.persona,
+                quirk: template.quirk
+            }));
+        }
+
+        function renderCoworkerHeader() {
+            const stack = document.getElementById('chatAvatarStack');
+            stack.innerHTML = coworkingCoworkers.slice(0, 3).map(c =>
+                `<div class="chat-avatar">${escapeHtml(c.name.slice(0, 1))}</div>`
+            ).join('');
+            updateCoworkingDisplay();
+        }
+
+        function addCoworkingMessage(sender, text, role = 'bot') {
+            coworkingMessages.push({
+                sender,
+                text: compactChatText(text),
+                role,
+                at: Date.now()
+            });
+            if (coworkingMessages.length > 80) coworkingMessages.shift();
+            renderCoworkingMessages();
+        }
+
+        function renderCoworkingMessages() {
+            const el = document.getElementById('coworkingMessages');
+            el.innerHTML = coworkingMessages.map(message => {
+                const sender = message.role === 'user' || message.role === 'system'
+                    ? ''
+                    : `<div class="chat-sender">${escapeHtml(message.sender)}</div>`;
+                return `<div class="chat-message ${message.role}">
+                    ${sender}
+                    <div class="chat-bubble">${escapeHtml(message.text)}</div>
+                </div>`;
+            }).join('');
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function closeCoworkingChat() {
+            document.getElementById('coworkingChatWindow').classList.add('hidden');
+            document.getElementById('chatReopenBtn').classList.toggle('hidden', !coworkingActive);
+        }
+
+        function openCoworkingChat() {
+            document.getElementById('coworkingChatWindow').classList.remove('hidden');
+            document.getElementById('chatReopenBtn').classList.add('hidden');
+            renderCoworkingMessages();
+            updateCoworkingChatLock();
+        }
+
+        function schedulePeriodicCoworkingMessage() {
+            if (!coworkingActive) return;
+            const limit = coworkingUserInteracted ? coworkingPassiveLimit + 4 : coworkingPassiveLimit;
+            if (coworkingBotMessageCount >= limit) return;
+            const remainingMs = Math.max(8000, doublingSeconds * 1000);
+            const remainingMessages = Math.max(1, limit - coworkingBotMessageCount);
+            const spreadDelay = (remainingMs / remainingMessages) * (0.75 + Math.random() * 0.5);
+            const delay = coworkingBotMessageCount === 0
+                ? randomInt(8000, 16000)
+                : Math.max(25000, Math.min(spreadDelay, 6 * 60 * 1000));
+            const timer = setTimeout(async () => {
+                if (!coworkingActive) return;
+                const messages = await getCoworkingBotMessages('periodic');
+                messages.slice(0, 1).forEach(message => addCoworkingMessage(message.sender, message.text, 'bot'));
+                coworkingBotMessageCount += 1;
+                schedulePeriodicCoworkingMessage();
+            }, delay);
+            coworkingMessageTimers.push(timer);
+        }
+
+        async function sendCoworkingMessage(event) {
+            event.preventDefault();
+            if (!coworkingActive) {
+                toast('Start a coworking session first.');
+                return;
+            }
+            if (isCoworkingChatLocked()) {
+                updateCoworkingChatLock();
+                return;
+            }
+
+            const input = document.getElementById('coworkingChatInput');
+            const text = input.value.trim();
+            if (!text) return;
+            input.value = '';
+            addCoworkingMessage('You', text, 'user');
+            coworkingUserInteracted = true;
+            coworkingUserMessageTimes = coworkingUserMessageTimes
+                .filter(time => Date.now() - time < 5 * 60 * 1000);
+            coworkingUserMessageTimes.push(Date.now());
+
+            if (coworkingUserMessageTimes.length >= 4) {
+                lockCoworkingChat();
+                return;
+            }
+
+            const delay = randomInt(60 * 1000, 120 * 1000);
+            const timer = setTimeout(async () => {
+                if (!coworkingActive || isCoworkingChatLocked()) return;
+                const messages = await getCoworkingBotMessages('reply', text);
+                messages.slice(0, randomInt(1, 2)).forEach(message =>
+                    addCoworkingMessage(message.sender, message.text, 'bot')
+                );
+            }, delay);
+            coworkingMessageTimers.push(timer);
+        }
+
+        function lockCoworkingChat() {
+            coworkingChatLockedUntil = Date.now() + 5 * 60 * 1000;
+            addCoworkingMessage('Room', 'Chat paused for 5 minutes. Give your task the next tiny move.', 'system');
+            toast('Chat paused for 5 minutes. Back to the task.');
+            updateCoworkingChatLock();
+        }
+
+        function isCoworkingChatLocked() {
+            return Date.now() < coworkingChatLockedUntil;
+        }
+
+        function updateCoworkingChatLock() {
+            const input = document.getElementById('coworkingChatInput');
+            const send = document.getElementById('coworkingSendBtn');
+            const note = document.getElementById('chatLockNote');
+            const locked = isCoworkingChatLocked();
+            if (locked) {
+                const seconds = Math.ceil((coworkingChatLockedUntil - Date.now()) / 1000);
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                note.textContent = `Chat paused ${mins}:${secs.toString().padStart(2, '0')} so the task gets a turn.`;
+                note.classList.add('active');
+            } else {
+                note.textContent = '';
+                note.classList.remove('active');
+            }
+            input.disabled = locked || !coworkingActive;
+            send.disabled = locked || !coworkingActive;
+            input.placeholder = locked ? 'Chat paused. Back to the task.' : 'Message the room';
+        }
+
+        async function getCoworkingBotMessages(mode, userMessage = '') {
+            const useBackend = await shouldUseCoworkingBackend();
+            if (useBackend) {
+                try {
+                    const res = await fetch(`${API_URL}/api/coworking/chat`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            task: getCoworkingTask(),
+                            mode,
+                            session_minutes: coworkingSelectedMinutes,
+                            coworkers: coworkingCoworkers,
+                            recent_messages: coworkingMessages.map(({ sender, text }) => ({ sender, text })).slice(-20),
+                            user_message: userMessage
+                        })
+                    });
+                    if (!res.ok) throw new Error('Coworking API error');
+                    const data = await res.json();
+                    if (data.messages && data.messages.length) return data.messages;
+                } catch (e) {
+                    backendAiAvailable = false;
+                }
+            }
+            return localCoworkingMessages(mode, userMessage);
+        }
+
+        async function shouldUseCoworkingBackend() {
+            if (backendAiAvailable === true) return true;
+            if (backendAiAvailable === false) return false;
+            await shouldUseBrowserTrial();
+            return backendAiAvailable === true;
+        }
+
+        function localCoworkingMessages(mode, userMessage = '') {
+            if (!coworkingCoworkers.length) coworkingCoworkers = generateCoworkers();
+            const startIndex = (coworkingMessages.length + coworkingBotMessageCount) % coworkingCoworkers.length;
+            const count = mode === 'reply' && userMessage.includes('?') ? 2 : 1;
+            return Array.from({ length: count }, (_, offset) => {
+                const coworker = coworkingCoworkers[(startIndex + offset) % coworkingCoworkers.length];
+                const text = mode === 'reply'
+                    ? localCoworkingReply(userMessage, coworker, offset)
+                    : localCoworkingPeriodic(coworker, offset);
+                return {
+                    sender: coworker.name,
+                    text: applyCoworkerQuirk(text, coworker, userMessage)
+                };
+            });
+        }
+
+        function localCoworkingPeriodic(coworker, index) {
+            const variants = [
+                `starting ${coworker.task}. tiny bit first.`,
+                `checking in, i opened ${coworker.task}. staying with it.`,
+                `still here. doing ${coworker.task} for a few mins.`,
+                `tiny progress on ${coworker.task}. keeping it low drama.`
+            ];
+            return variants[(coworkingBotMessageCount + index) % variants.length];
+        }
+
+        function localCoworkingReply(userMessage, coworker, index) {
+            const lower = userMessage.toLowerCase();
+            if (/stuck|hard|overwhelmed|can't|cant|avoid/.test(lower)) {
+                return [
+                    'same kind of feeling here. make it almost silly-small.',
+                    'could you open it and only look for 10 sec?'
+                ][index % 2];
+            }
+            if (userMessage.includes('?')) {
+                return [
+                    "i'd pick the easiest doorway, not the perfect one.",
+                    'maybe make a rough version first and fix later.'
+                ][index % 2];
+            }
+            return [
+                "heard. i'm staying with my tiny step too.",
+                'nice, keep it small. one messy bit counts.'
+            ][index % 2];
+        }
+
+        function applyCoworkerQuirk(text, coworker, userMessage = '') {
+            let output = text;
+            if (coworker.quirk === 'uses_2') {
+                output = output.replace(/\b(to|two|too)\b/gi, '2');
+            } else if (coworker.quirk === 'lol' && /lol|haha|funny|oops|chaos|mess/i.test(userMessage || output)) {
+                output = `lol ${output}`;
+            } else if (coworker.quirk === 'typos' && Math.random() < 0.55) {
+                output = output.replace('small', 'smol').replace('really', 'rlly').replace('because', 'bc');
+            } else if (coworker.quirk === 'emoji' && Math.random() < 0.55) {
+                output = `${output} :)`;
+            } else if (coworker.quirk === 'checklist' && Math.random() < 0.5) {
+                output = `next: ${output}`;
+            }
+            return compactChatText(output);
+        }
+
+        function compactChatText(text) {
+            const words = text.trim().split(/\s+/).filter(Boolean);
+            if (words.length <= 30) return text.trim();
+            return `${words.slice(0, 30).join(' ')}...`;
+        }
+
+        function shuffled(items) {
+            return [...items].sort(() => Math.random() - 0.5);
+        }
+
+        function randomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         document.getElementById('taskInput').addEventListener('keydown', e => {
             if (e.key === 'Enter') unclump();
         });
         document.getElementById('doublingStopBtn').style.display = 'none';
+        selectCoworkingLength(30);
+        updateCoworkingChatLock();
         updateRecent();
     </script>
 </body>

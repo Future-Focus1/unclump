@@ -76,12 +76,22 @@ class SessionStartRequest(BaseModel):
         max_length=300,
         description="Optional note about what made the task hard today.",
     )
+    prior_progress: str | None = Field(
+        default=None,
+        max_length=1000,
+        description="Optional saved progress from a previous related session.",
+    )
+    previous_stopping_point: str | None = Field(
+        default=None,
+        max_length=500,
+        description="Optional stopping point from a previous related session.",
+    )
 
 
 class SessionFeedbackRequest(BaseModel):
     feedback: str = Field(
         ...,
-        description="done, too_hard, need_smaller, distracted, not_right, or skip",
+        description="done, need_smaller, distracted, or skip",
     )
 
 
@@ -92,6 +102,12 @@ class SessionResponse(BaseModel):
     block_type: str
     block_label: str
     block_reason: str
+    task_size: str = "medium"
+    planning_mode: str = "one_session_steps"
+    session_goal: str = ""
+    stopping_point: str | None = None
+    progress_notes: list[str] = Field(default_factory=list)
+    next_session_prompt: str | None = None
     entry_hook: str
     reflection_prompt: str
     current_step_index: int
@@ -180,6 +196,8 @@ async def session_start(request: SessionStartRequest):
         "energy_level": request.energy_level,
         "preferred_tone": request.preferred_tone,
         "recent_friction": request.recent_friction,
+        "prior_progress": request.prior_progress,
+        "previous_stopping_point": request.previous_stopping_point,
     }
 
     if has_ai_provider():
@@ -201,6 +219,7 @@ async def session_start(request: SessionStartRequest):
         "feedback_counts": {},
         "feedback_log": [],
         "adaptation_log": [],
+        "progress_notes": plan.progress_notes,
         "created_at": now,
         "updated_at": now,
         "nudge": None,
@@ -250,61 +269,134 @@ async def session_feedback(session_id: str, request: SessionFeedbackRequest):
     if feedback == "done":
         session["completed_steps"] = int(session.get("completed_steps", 0)) + 1
         session["current_step_index"] = current_index + 1
-        session["nudge"] = "Nice. The next step can stay small too."
+        if current_step:
+            session.setdefault("progress_notes", []).append(
+                f"Completed: {current_step.get('description', 'step')}"
+            )
+        session["nudge"] = "Good. That counted. Next move."
     elif feedback == "skip":
         session["current_step_index"] = current_index + 1
-        session["nudge"] = "Skipping is data, not failure. Keep moving to the next doorway."
+        session["nudge"] = "Skipped. Fine. Keep momentum with the next useful move."
     else:
         if not current_step:
             session["status"] = "complete"
             session["session_summary"] = _completion_summary(session)
         else:
-            if has_ai_provider():
-                try:
-                    adapted = create_adaptive_step(
+            if feedback == "need_smaller":
+                replan_context = {
+                    "preferred_tone": "direct_motivational",
+                    "recent_friction": (
+                        "The user hit Make smaller. Replan only the remaining work. "
+                        f"Current step was too big: {current_step.get('description', '')}. "
+                        f"Completed so far: {session.get('progress_notes', [])[-6:]}. "
+                        f"Original stopping point: {session.get('stopping_point') or 'none'}."
+                    ),
+                    "prior_progress": "; ".join(session.get("progress_notes", [])[-8:]),
+                    "previous_stopping_point": session.get("stopping_point"),
+                }
+                if has_ai_provider():
+                    try:
+                        replanned = create_unclump_session_plan(
+                            session["original_task"],
+                            context=replan_context,
+                        )
+                    except Exception as e:
+                        print(f"AI replan failed, using fallback: {e}")
+                        replanned = create_unclump_session_plan_fallback(
+                            session["original_task"],
+                            context=replan_context,
+                        )
+                else:
+                    replanned = create_unclump_session_plan_fallback(
+                        session["original_task"],
+                        context=replan_context,
+                    )
+
+                replacement_steps = replanned.to_dict()["micro_steps"]
+                if replacement_steps:
+                    smaller = create_adaptive_step_fallback(
                         session["original_task"],
                         current_step,
                         feedback,
                         session["block_type"],
                     )
-                except Exception as e:
-                    print(f"AI adaptive step failed, using fallback: {e}")
+                    replacement_steps[0] = {
+                        **replacement_steps[0],
+                        "description": smaller["description"],
+                        "estimated_seconds": smaller["estimated_seconds"],
+                        "support_note": smaller["support_note"],
+                        "adapted_from": current_step.get("description"),
+                        "adapted_for": feedback,
+                    }
+                kept_steps = steps[:current_index]
+                renumbered = []
+                for offset, step in enumerate(replacement_steps[:6], start=current_index + 1):
+                    renumbered.append({**step, "step": offset})
+                session["micro_steps"] = kept_steps + renumbered
+                session["task_size"] = replanned.task_size
+                session["planning_mode"] = replanned.planning_mode
+                session["block_label"] = replanned.block_label
+                session["block_reason"] = replanned.block_reason
+                session["session_goal"] = replanned.session_goal
+                session["stopping_point"] = replanned.stopping_point
+                session["next_session_prompt"] = replanned.next_session_prompt
+                session.setdefault("progress_notes", []).append(
+                    "Replanned the remaining route into smaller moves."
+                )
+                session["adaptation_log"].append({
+                    "feedback": feedback,
+                    "old_step": current_step,
+                    "new_step": replacement_steps[0] if replacement_steps else None,
+                    "at": _now_iso(),
+                })
+                session["nudge"] = "Smaller route loaded. Same mission."
+            else:
+                if has_ai_provider():
+                    try:
+                        adapted = create_adaptive_step(
+                            session["original_task"],
+                            current_step,
+                            feedback,
+                            session["block_type"],
+                        )
+                    except Exception as e:
+                        print(f"AI adaptive step failed, using fallback: {e}")
+                        adapted = create_adaptive_step_fallback(
+                            session["original_task"],
+                            current_step,
+                            feedback,
+                            session["block_type"],
+                        )
+                else:
                     adapted = create_adaptive_step_fallback(
                         session["original_task"],
                         current_step,
                         feedback,
                         session["block_type"],
                     )
-            else:
-                adapted = create_adaptive_step_fallback(
-                    session["original_task"],
-                    current_step,
-                    feedback,
-                    session["block_type"],
-                )
 
-            replacement = {
-                **current_step,
-                "description": adapted["description"],
-                "estimated_seconds": adapted["estimated_seconds"],
-                "support_note": adapted["support_note"],
-                "adapted_from": current_step.get("description"),
-                "adapted_for": feedback,
-            }
-            steps[current_index] = replacement
-            session["micro_steps"] = steps
-            session["adaptation_log"].append({
-                "feedback": feedback,
-                "old_step": current_step,
-                "new_step": replacement,
-                "at": _now_iso(),
-            })
-            session["nudge"] = adapted.get("encouragement")
+                replacement = {
+                    **current_step,
+                    "description": adapted["description"],
+                    "estimated_seconds": adapted["estimated_seconds"],
+                    "support_note": adapted["support_note"],
+                    "adapted_from": current_step.get("description"),
+                    "adapted_for": feedback,
+                }
+                steps[current_index] = replacement
+                session["micro_steps"] = steps
+                session["adaptation_log"].append({
+                    "feedback": feedback,
+                    "old_step": current_step,
+                    "new_step": replacement,
+                    "at": _now_iso(),
+                })
+                session["nudge"] = adapted.get("encouragement")
 
     if int(session.get("current_step_index", 0)) >= len(session.get("micro_steps", [])):
         session["status"] = "complete"
         session["finished_at"] = _now_iso()
-        session["nudge"] = "You made contact with the task. That counts."
+        session["nudge"] = "Done for this round. Progress recorded."
         session["session_summary"] = _completion_summary(session)
 
     session["updated_at"] = _now_iso()
@@ -425,6 +517,12 @@ def _session_response(session: dict) -> dict:
         "block_type": session["block_type"],
         "block_label": session["block_label"],
         "block_reason": session["block_reason"],
+        "task_size": session.get("task_size", "medium"),
+        "planning_mode": session.get("planning_mode", "one_session_steps"),
+        "session_goal": session.get("session_goal", ""),
+        "stopping_point": session.get("stopping_point"),
+        "progress_notes": session.get("progress_notes", []),
+        "next_session_prompt": session.get("next_session_prompt"),
         "entry_hook": session["entry_hook"],
         "reflection_prompt": session.get("reflection_prompt", ""),
         "current_step_index": current_index,
@@ -432,7 +530,7 @@ def _session_response(session: dict) -> dict:
         "total_steps": len(steps),
         "current_step": current_step,
         "micro_steps": steps,
-        "feedback_options": ["done", "too_hard", "need_smaller", "distracted", "not_right", "skip"],
+        "feedback_options": ["done", "need_smaller", "distracted", "skip"],
         "nudge": session.get("nudge"),
         "session_summary": session.get("session_summary"),
     }
@@ -441,11 +539,13 @@ def _session_response(session: dict) -> dict:
 def _completion_summary(session: dict) -> str:
     completed = int(session.get("completed_steps", 0))
     total = len(session.get("micro_steps", []))
-    block_label = session.get("block_label", "the stuck point")
-    return (
-        f"You completed {completed} of {total} steps and learned that "
-        f"{block_label.lower()} may be part of this task's friction."
-    )
+    if session.get("planning_mode") == "multi_session_project":
+        stopping_point = session.get("stopping_point") or "the next action is named"
+        return (
+            f"Session checkpoint reached: {completed} of {total} steps done. "
+            f"Progress is recorded; next time, pick up from: {stopping_point}"
+        )
+    return f"You completed {completed} of {total} steps. Good. That task is no longer frozen."
 
 
 class WaitlistRequest(BaseModel):
