@@ -739,6 +739,7 @@
             ? 'http://localhost:8000'
             : 'https://unclump-api.onrender.com';
         const USE_BROWSER_TRIAL = false;
+        let backendAiAvailable = null;
         let currentSession = null;
         let steps = [], currentStep = 0, timerInterval = null;
         let secondsLeft = 0, totalSeconds = 0, startedAt = null;
@@ -811,7 +812,10 @@
         };
 
         function makeId() {
-            return window.crypto && crypto.randomUUID ? crypto.randomUUID() : `trial-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+            const suffix = window.crypto && crypto.randomUUID
+                ? crypto.randomUUID()
+                : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+            return `trial-${suffix}`;
         }
 
         function taskLabel(task, maxLength = 80) {
@@ -1085,6 +1089,24 @@
             return currentSession && String(currentSession.session_id || '').startsWith('trial-');
         }
 
+        async function shouldUseBrowserTrial() {
+            if (USE_BROWSER_TRIAL) return true;
+            if (backendAiAvailable !== null) return !backendAiAvailable;
+            try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 2500);
+                const res = await fetch(`${API_URL}/`, { signal: controller.signal });
+                clearTimeout(timeout);
+                if (!res.ok) throw new Error('Backend unavailable');
+                const status = await res.json();
+                backendAiAvailable = Boolean(status.ai_provider_configured);
+                return !backendAiAvailable;
+            } catch (e) {
+                backendAiAvailable = false;
+                return true;
+            }
+        }
+
         function browserSupportNudge(moment) {
             const originalTask = currentSession ? currentSession.original_task : 'this task';
             const label = taskLabel(originalTask, 70);
@@ -1121,7 +1143,7 @@
             show('loadingScreen');
 
             try {
-                if (USE_BROWSER_TRIAL) {
+                if (await shouldUseBrowserTrial()) {
                     const data = startBrowserTrialSession(task);
                     applySession(data);
                     startedAt = Date.now();
