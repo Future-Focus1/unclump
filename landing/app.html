@@ -265,6 +265,28 @@
         .step-dot.done { background: var(--accent); transform: scale(1.2); }
         .step-dot.current { background: var(--text); transform: scale(1.4); }
 
+        .session-insight {
+            background: var(--surface);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius);
+            padding: 0.9rem 1rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .session-insight .label {
+            color: var(--accent-dark);
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+        .session-insight .reason {
+            color: var(--text-secondary);
+            font-size: 0.86rem;
+            line-height: 1.45;
+        }
+
         .step-card {
             background: var(--surface);
             border-radius: var(--radius-lg);
@@ -299,6 +321,16 @@
             color: var(--text);
         }
 
+        .support-note {
+            color: var(--text-secondary);
+            background: var(--accent-light);
+            border-radius: 14px;
+            padding: 0.85rem 1rem;
+            font-size: 0.88rem;
+            line-height: 1.45;
+            margin-bottom: 1.5rem;
+        }
+
         /* Timer */
         .timer-container {
             position: relative;
@@ -320,6 +352,18 @@
 
         .step-actions {
             display: flex; gap: 0.65rem; margin-top: auto;
+        }
+        .feedback-actions {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.65rem;
+        }
+        .feedback-actions .btn {
+            min-width: 0;
+            padding: 0.72rem 0.45rem;
+            font-size: 0.78rem;
+            line-height: 1.15;
         }
         .btn-secondary {
             flex: 1;
@@ -490,6 +534,9 @@
             margin-top: 0.75rem;
             text-align: center;
         }
+        @media (max-width: 380px) {
+            .feedback-actions { grid-template-columns: 1fr; }
+        }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -547,9 +594,14 @@
         <div class="screen" id="stepsScreen">
             <div class="steps-screen">
                 <div class="step-progress-row" id="stepDots"></div>
+                <div class="session-insight" id="sessionInsight">
+                    <div class="label" id="blockLabel">Stuck point</div>
+                    <div class="reason" id="blockReason">Finding the smallest safe entry point.</div>
+                </div>
                 <div class="step-card">
                     <div class="step-number" id="stepBadge">Step 1 of 5</div>
                     <div class="step-text" id="stepDescription"></div>
+                    <div class="support-note" id="supportNote"></div>
                     <div class="timer-container" id="timerContainer">
                         <div class="timer-ring">
                             <svg viewBox="0 0 130 130">
@@ -570,6 +622,14 @@
                         <button class="btn btn-secondary hidden" id="skipBtn" onclick="skipStep()">
                             Skip
                         </button>
+                    </div>
+                    <div class="feedback-actions">
+                        <button class="btn btn-secondary" onclick="sendFeedback('too_hard')">Too hard</button>
+                        <button class="btn btn-secondary" onclick="sendFeedback('need_smaller')">Make smaller</button>
+                        <button class="btn btn-secondary" onclick="sendFeedback('distracted')">I drifted</button>
+                        <button class="btn btn-secondary" onclick="getSupportNudge('nudge')">Nudge me</button>
+                        <button class="btn btn-secondary" onclick="sendFeedback('not_right')">Wrong step</button>
+                        <button class="btn btn-secondary" onclick="showDoubling()">Body double</button>
                     </div>
                 </div>
                 <div class="skip-hint hidden" id="skipHint">
@@ -644,7 +704,10 @@
 
     <script>
         // ── State ──
-        const API_URL = 'https://unclump-api.onrender.com';
+        const API_URL = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+            ? 'http://localhost:8000'
+            : 'https://unclump-api.onrender.com';
+        let currentSession = null;
         let steps = [], currentStep = 0, timerInterval = null;
         let secondsLeft = 0, totalSeconds = 0, startedAt = null;
         let doublingInterval = null, doublingSeconds = 25 * 60;
@@ -711,16 +774,18 @@
             show('loadingScreen');
 
             try {
-                const res = await fetch(API_URL + '/api/breakdown', {
+                const res = await fetch(API_URL + '/api/session/start', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ task })
+                    body: JSON.stringify({
+                        task,
+                        preferred_tone: 'gentle'
+                    })
                 });
                 if (!res.ok) throw new Error('Server error');
                 const data = await res.json();
-                if (!data.micro_steps || data.micro_steps.length === 0) throw new Error('No steps returned');
-                steps = data.micro_steps;
-                currentStep = 0;
+                if (!data.current_step) throw new Error('No current step returned');
+                applySession(data);
                 startedAt = Date.now();
                 showStep();
             } catch (e) {
@@ -740,7 +805,13 @@
         }
 
         // ── Steps ──
-        function showStep() {
+        function applySession(data) {
+            currentSession = data;
+            steps = data.micro_steps || [];
+            currentStep = data.current_step_index || 0;
+        }
+
+        function legacyShowStepUnused() {
             if (currentStep >= steps.length) return showDone();
             show('stepsScreen');
 
@@ -767,6 +838,38 @@
             // Share bar
             document.getElementById('shareText').textContent =
                 `Working on: "${step.description}" — Step ${step.step} of ${steps.length}`;
+        }
+
+        function showStep() {
+            if (!currentSession || currentSession.status === 'complete' || !currentSession.current_step) return showDone();
+            show('stepsScreen');
+
+            const step = currentSession.current_step;
+            steps = currentSession.micro_steps || [];
+            currentStep = currentSession.current_step_index || 0;
+
+            document.getElementById('blockLabel').textContent = currentSession.block_label || 'Stuck point';
+            document.getElementById('blockReason').textContent = currentSession.block_reason || currentSession.entry_hook || 'Finding the smallest safe entry point.';
+            document.getElementById('stepBadge').textContent = `Step ${step.step} of ${currentSession.total_steps}`;
+            document.getElementById('stepDescription').textContent = step.description;
+            document.getElementById('supportNote').textContent = step.support_note || currentSession.entry_hook || '';
+            const isLast = currentStep >= steps.length - 1;
+            document.getElementById('stepDoneBtn').textContent = isLast ? 'Done - finish' : 'Done - next';
+            document.getElementById('skipBtn').classList.add('hidden');
+            document.getElementById('skipHint').classList.add('hidden');
+
+            document.getElementById('stepDots').innerHTML = steps.map((_, i) => {
+                let cls = i < currentStep ? 'done' : i === currentStep ? 'current' : '';
+                return `<div class="step-dot ${cls}"></div>`;
+            }).join('');
+
+            secondsLeft = Math.max(10, Math.min(120, step.estimated_seconds));
+            totalSeconds = secondsLeft;
+            updateTimerDisplay();
+            startTimer();
+
+            document.getElementById('shareText').textContent =
+                `Working on: "${step.description}" - Step ${step.step} of ${currentSession.total_steps}`;
         }
 
         function startTimer() {
@@ -797,23 +900,80 @@
             document.getElementById('timerFill').style.stroke = s < 10 ? '#d4a853' : 'var(--accent)';
         }
 
-        function stepDone() {
+        async function sendFeedback(feedback) {
+            if (!currentSession || !currentSession.session_id) return;
             clearInterval(timerInterval);
             document.getElementById('skipBtn').classList.add('hidden');
             document.getElementById('skipHint').classList.add('hidden');
-            currentStep++;
-            showStep();
+            setFeedbackDisabled(true);
+
+            try {
+                const res = await fetch(`${API_URL}/api/session/${currentSession.session_id}/feedback`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ feedback })
+                });
+                if (!res.ok) throw new Error('Server error');
+                const data = await res.json();
+                applySession(data);
+                if (data.nudge) toast(data.nudge);
+                if (data.status === 'complete') {
+                    showDone();
+                } else {
+                    showStep();
+                }
+            } catch (e) {
+                toast('Could not update the session. Try again in a moment.');
+                startTimer();
+            } finally {
+                setFeedbackDisabled(false);
+            }
+        }
+
+        async function getSupportNudge(moment) {
+            if (!currentSession) return;
+            setFeedbackDisabled(true);
+            try {
+                const res = await fetch(`${API_URL}/api/support`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        task: currentSession.original_task,
+                        current_step: currentSession.current_step,
+                        moment,
+                        user_state: currentSession.block_label
+                    })
+                });
+                if (!res.ok) throw new Error('Server error');
+                const data = await res.json();
+                document.getElementById('supportNote').textContent = `${data.message} ${data.suggested_action}`;
+                toast(data.message);
+            } catch (e) {
+                toast('Try one breath, then one tiny visible move.');
+            } finally {
+                setFeedbackDisabled(false);
+            }
+        }
+
+        function setFeedbackDisabled(disabled) {
+            document.querySelectorAll('#stepsScreen button').forEach(btn => {
+                btn.disabled = disabled;
+            });
+        }
+
+        function stepDone() {
+            sendFeedback('done');
         }
 
         function skipStep() {
-            document.getElementById('skipBtn').classList.add('hidden');
-            document.getElementById('skipHint').classList.add('hidden');
-            currentStep++;
-            showStep();
+            sendFeedback('skip');
         }
 
         function goBack() {
             clearInterval(timerInterval);
+            currentSession = null;
+            steps = [];
+            currentStep = 0;
             show('inputScreen');
             document.getElementById('taskInput').focus();
         }
@@ -823,11 +983,18 @@
             clearInterval(timerInterval);
             show('doneScreen');
             const elapsed = Math.round((Date.now() - startedAt) / 60000);
-            document.getElementById('doneSteps').textContent = steps.length;
+            const completed = currentSession ? currentSession.completed_steps : steps.length;
+            document.getElementById('doneSteps').textContent = completed;
             document.getElementById('doneTime').textContent = elapsed > 0 ? `${elapsed}m` : '<1m';
+            if (currentSession && currentSession.session_summary) {
+                document.querySelector('#doneScreen p').textContent = currentSession.session_summary;
+            } else {
+                document.querySelector('#doneScreen p').textContent = "One step at a time. That's all it takes.";
+            }
         }
 
         function resetApp() {
+            currentSession = null;
             steps = []; currentStep = 0;
             document.getElementById('taskInput').value = '';
             show('inputScreen');
@@ -837,8 +1004,10 @@
 
         // ── Share / Accountability ──
         function shareTask() {
-            const step = steps[currentStep];
-            const text = `I'm using Unclump to get unstuck!\n\nCurrent step: ${step.description}\nStep ${step.step} of ${steps.length}\n\nTry it: ${window.location.href}`;
+            const step = currentSession && currentSession.current_step ? currentSession.current_step : steps[currentStep];
+            if (!step) return;
+            const total = currentSession ? currentSession.total_steps : steps.length;
+            const text = `I'm using Unclump to get unstuck!\n\nCurrent step: ${step.description}\nStep ${step.step} of ${total}\n\nTry it: ${window.location.href}`;
             if (navigator.share) {
                 navigator.share({ title: 'Unclump — Working on a task', text });
             } else {
@@ -853,7 +1022,10 @@
 
         // ── Body Doubling ──
         function showDoubling() { show('doublingScreen'); }
-        function closeDoubling() { show(steps.length > 0 ? 'stepsScreen' : 'inputScreen'); }
+        function closeDoubling() {
+            const hasActiveSession = currentSession && currentSession.status !== 'complete';
+            show(hasActiveSession ? 'stepsScreen' : 'inputScreen');
+        }
 
         function startDoubling() {
             doublingSeconds = 25 * 60;

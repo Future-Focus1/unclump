@@ -2,7 +2,15 @@
 
 import pytest
 from fastapi.testclient import TestClient
+import main
 from main import app
+
+
+@pytest.fixture(autouse=True)
+def isolate_session_store(tmp_path, monkeypatch):
+    monkeypatch.setattr(main, "SESSIONS_FILE", tmp_path / "sessions.json")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
 
 
 @pytest.fixture
@@ -67,3 +75,59 @@ def test_breakdown_handles_various_tasks(client):
         assert len(data["micro_steps"]) > 0
         assert all(s["step"] > 0 for s in data["micro_steps"])
         assert all(10 <= s["estimated_seconds"] <= 120 for s in data["micro_steps"])
+
+
+def test_session_start_uses_fallback(client):
+    response = client.post(
+        "/api/session/start",
+        json={"task": "I am too exhausted to clean my room", "energy_level": "low"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["session_id"]
+    assert data["status"] == "active"
+    assert data["block_type"] == "low_energy"
+    assert data["current_step"]["is_entry_point"] is True
+    assert len(data["feedback_options"]) > 0
+
+
+def test_session_feedback_adapts_current_step(client):
+    start = client.post("/api/session/start", json={"task": "reply to an email"}).json()
+    response = client.post(
+        f"/api/session/{start['session_id']}/feedback",
+        json={"feedback": "too_hard"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "active"
+    assert data["current_step_index"] == 0
+    assert data["current_step"]["adapted_for"] == "too_hard"
+    assert data["nudge"]
+
+
+def test_session_feedback_done_advances(client):
+    start = client.post("/api/session/start", json={"task": "send an email"}).json()
+    response = client.post(
+        f"/api/session/{start['session_id']}/feedback",
+        json={"feedback": "done"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["completed_steps"] == 1
+    assert data["current_step_index"] == 1
+
+
+def test_support_endpoint_uses_fallback(client):
+    response = client.post(
+        "/api/support",
+        json={
+            "task": "reply to an email",
+            "moment": "nudge",
+            "user_state": "overwhelmed",
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["message"]
+    assert data["suggested_action"]
+    assert data["reminder_after_minutes"] > 0

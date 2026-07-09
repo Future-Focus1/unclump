@@ -7,7 +7,12 @@ from unittest.mock import MagicMock, patch
 from engine import (
     breakdown_task,
     breakdown_task_fallback,
+    create_adaptive_step_fallback,
+    create_support_message_fallback,
+    create_unclump_session_plan_fallback,
     _parse_response,
+    _parse_support_message,
+    _parse_session_response,
     TaskBreakdown,
     MicroStep,
     SYSTEM_PROMPT,
@@ -200,3 +205,72 @@ class TestFallbackBreakdown:
         assert result.total_estimated_seconds == sum(
             s.estimated_seconds for s in result.micro_steps
         )
+
+
+class TestUnclumpSessionPlan:
+    """Tests for adaptive session planning."""
+
+    def test_parse_session_response(self):
+        raw = json.dumps({
+            "block_type": "unclear_next_step",
+            "block_label": "Unclear next step",
+            "block_reason": "The next action is fuzzy.",
+            "confidence": 0.8,
+            "entry_hook": "Start with one visible move.",
+            "reflection_prompt": "What helped?",
+            "micro_steps": [
+                {
+                    "description": "Open a blank note.",
+                    "estimated_seconds": 5,
+                    "support_note": "This makes the task visible.",
+                }
+            ],
+        })
+        result = _parse_session_response("start project", raw)
+        assert result.block_type == "unclear_next_step"
+        assert result.confidence == 0.8
+        assert result.micro_steps[0].estimated_seconds == 10
+        assert result.micro_steps[0].support_note == "This makes the task visible."
+
+    def test_fallback_detects_low_energy(self):
+        result = create_unclump_session_plan_fallback(
+            "I am too exhausted to start laundry",
+            context={"energy_level": "low"},
+        )
+        assert result.block_type == "low_energy"
+        assert result.micro_steps[0].is_entry_point is True
+
+    def test_adaptive_fallback_makes_step_smaller(self):
+        current_step = {
+            "step": 1,
+            "description": "Write the whole email.",
+            "estimated_seconds": 120,
+        }
+        result = create_adaptive_step_fallback(
+            "reply to an email",
+            current_step,
+            "too_hard",
+            "overwhelm",
+        )
+        assert result["estimated_seconds"] <= 15
+        assert result["description"] == "Open the message and read the sender's name."
+
+    def test_parse_support_message(self):
+        raw = json.dumps({
+            "message": "Small is enough.",
+            "suggested_action": "Open the draft.",
+            "reminder_after_minutes": 5,
+            "tone": "gentle",
+        })
+        result = _parse_support_message(raw)
+        assert result["message"] == "Small is enough."
+        assert result["suggested_action"] == "Open the draft."
+        assert result["reminder_after_minutes"] == 5
+
+    def test_support_fallback_is_contextual(self):
+        result = create_support_message_fallback(
+            "reply to an email",
+            moment="nudge",
+            user_state="stuck",
+        )
+        assert "sender" in result["suggested_action"]

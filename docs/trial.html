@@ -658,9 +658,9 @@
                         <button class="btn btn-secondary" onclick="sendFeedback('too_hard')">Too hard</button>
                         <button class="btn btn-secondary" onclick="sendFeedback('need_smaller')">Make smaller</button>
                         <button class="btn btn-secondary" onclick="sendFeedback('distracted')">I drifted</button>
+                        <button class="btn btn-secondary" onclick="getSupportNudge('nudge')">Nudge me</button>
                         <button class="btn btn-secondary" onclick="sendFeedback('not_right')">Wrong step</button>
                         <button class="btn btn-secondary" onclick="showDoubling()">Body double</button>
-                        <button class="btn btn-secondary" onclick="goBack()">New task</button>
                     </div>
                 </div>
                 <div class="skip-hint hidden" id="skipHint">
@@ -738,7 +738,7 @@
         const API_URL = ['localhost', '127.0.0.1'].includes(window.location.hostname)
             ? 'http://localhost:8000'
             : 'https://unclump-api.onrender.com';
-        const USE_BROWSER_TRIAL = true;
+        const USE_BROWSER_TRIAL = false;
         let currentSession = null;
         let steps = [], currentStep = 0, timerInterval = null;
         let secondsLeft = 0, totalSeconds = 0, startedAt = null;
@@ -872,9 +872,9 @@
                 ];
             }
             return [
-                ['Touch or open the thing connected to this task.', 10],
+                ['Name the next visible action out loud or in your head.', 10],
                 ['Look at it for ten seconds without fixing anything.', 10],
-                ['Name the first visible action out loud or in your head.', 15],
+                ['Do the smallest visible part for twenty seconds.', 20],
                 ['Do that action for thirty seconds.', 30],
                 ['Pause and decide whether to continue or stop.', 10]
             ];
@@ -944,7 +944,19 @@
             if (blockType === 'shame') {
                 return ['Say: this can be messy, then touch the task for ten seconds.', 10, 'The action starts with permission instead of pressure.'];
             }
-            return ['Touch or open the thing connected to this task.', 10, 'This counts as contact without requiring follow-through yet.'];
+            if (task.includes('email') || task.includes('message') || task.includes('reply')) {
+                return ["Open the message and read the sender's name.", 10, 'This lowers the task to one concrete point of contact.'];
+            }
+            if (task.includes('clean') || task.includes('tidy') || task.includes('room')) {
+                return ['Pick up one item you can see.', 10, 'This makes progress visible without asking for the whole room.'];
+            }
+            if (task.includes('tax') || task.includes('form') || task.includes('admin')) {
+                return ['Open the folder, app, or page for this task.', 10, 'This starts with finding the doorway, not solving the whole task.'];
+            }
+            if (task.includes('write') || task.includes('essay') || task.includes('report')) {
+                return ['Open a blank note and type one rough word.', 10, 'A rough word is enough to break the blank-page seal.'];
+            }
+            return ['Name the next visible action out loud.', 10, 'This turns the task into one concrete next move.'];
         }
 
         function handleBrowserTrialFeedback(feedback) {
@@ -977,6 +989,29 @@
                 currentSession.nudge = 'You made contact with the task. That counts.';
             }
             return decorateSession(currentSession);
+        }
+
+        function isBrowserTrialSession() {
+            return currentSession && String(currentSession.session_id || '').startsWith('trial-');
+        }
+
+        function browserSupportNudge(moment) {
+            const state = currentSession ? currentSession.block_label : 'stuck';
+            const step = currentSession && currentSession.current_step ? currentSession.current_step.description : 'Choose one tiny visible move.';
+            if (moment === 'distracted') {
+                return {
+                    message: 'Attention wandered. That is information, not a verdict.',
+                    suggested_action: 'Look away from the screen and take one slow breath.',
+                    reminder_after_minutes: 5,
+                    tone: 'gentle'
+                };
+            }
+            return {
+                message: `${state} needs a smaller doorway.`,
+                suggested_action: step,
+                reminder_after_minutes: 10,
+                tone: 'gentle'
+            };
         }
 
         async function unclump() {
@@ -1017,8 +1052,11 @@
                 startedAt = Date.now();
                 showStep();
             } catch (e) {
-                showError('Something went wrong. The server might still be waking up — try again in a moment.');
-                show('inputScreen');
+                const data = startBrowserTrialSession(task);
+                applySession(data);
+                startedAt = Date.now();
+                toast('Using offline trial mode for this session.');
+                showStep();
             } finally {
                 document.getElementById('unclumpBtn').disabled = false;
             }
@@ -1136,7 +1174,7 @@
             setFeedbackDisabled(true);
 
             try {
-                if (USE_BROWSER_TRIAL) {
+                if (USE_BROWSER_TRIAL || isBrowserTrialSession()) {
                     const data = handleBrowserTrialFeedback(feedback);
                     applySession(data);
                     if (data.nudge) toast(data.nudge);
@@ -1164,6 +1202,39 @@
             } catch (e) {
                 toast('Could not update the session. Try again in a moment.');
                 startTimer();
+            } finally {
+                setFeedbackDisabled(false);
+            }
+        }
+
+        async function getSupportNudge(moment) {
+            if (!currentSession) return;
+            setFeedbackDisabled(true);
+            try {
+                if (USE_BROWSER_TRIAL || isBrowserTrialSession()) {
+                    const data = browserSupportNudge(moment);
+                    document.getElementById('supportNote').textContent = `${data.message} ${data.suggested_action}`;
+                    toast(data.message);
+                    return;
+                }
+                const res = await fetch(`${API_URL}/api/support`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        task: currentSession.original_task,
+                        current_step: currentSession.current_step,
+                        moment,
+                        user_state: currentSession.block_label
+                    })
+                });
+                if (!res.ok) throw new Error('Server error');
+                const data = await res.json();
+                document.getElementById('supportNote').textContent = `${data.message} ${data.suggested_action}`;
+                toast(data.message);
+            } catch (e) {
+                const data = browserSupportNudge(moment);
+                document.getElementById('supportNote').textContent = `${data.message} ${data.suggested_action}`;
+                toast(data.message);
             } finally {
                 setFeedbackDisabled(false);
             }
