@@ -988,13 +988,13 @@
                 <div class="doubling-card">
                     <div class="icon">👥</div>
                     <h2>Coworking</h2>
-                    <p class="coworking-intro">Pick a length and work alongside a simulated quiet group.</p>
+                    <p class="coworking-intro">Pick a length and settle into a quiet virtual coworking room.</p>
                     <div class="duration-options" id="durationOptions">
                         <button class="duration-btn" data-minutes="10" onclick="selectCoworkingLength(10)">10 min</button>
                         <button class="duration-btn active" data-minutes="30" onclick="selectCoworkingLength(30)">30 min</button>
                         <button class="duration-btn" data-minutes="60" onclick="selectCoworkingLength(60)">1 hour</button>
                     </div>
-                    <div class="coworking-meta" id="coworkingMeta">Simulated coworking room</div>
+                    <div class="coworking-meta" id="coworkingMeta">Virtual coworking room</div>
                     <div class="doubling-timer" id="doublingTimer">30:00</div>
                     <div class="doubling-presence">
                         <div class="presence-dot"></div>
@@ -1014,7 +1014,7 @@
                         <div class="chat-avatar-stack" id="chatAvatarStack"></div>
                         <div class="chat-title">
                             <strong>Group chat</strong>
-                            <span id="chatSubtitle">Simulated coworking companions</span>
+                            <span id="chatSubtitle">Coworking room</span>
                         </div>
                         <button class="chat-close" onclick="closeCoworkingChat()" aria-label="Close chat">x</button>
                     </div>
@@ -1086,8 +1086,8 @@
         const TASK_THREAD_KEY = 'unclump_task_threads';
         const PLAN_SUBTITLES = {
             small: "Piece of Cake - You've got this one.",
-            medium: "Let's break it down - we can handle this in one go if we break it into smaller chunks.",
-            large: "Overwhelming - this may feel too large to do in one go, let's do it over multiple sessions together."
+            medium: "Let's break it down",
+            large: "Overwhelming - Let's do this over multiple sessions."
         };
         const DRIFT_MESSAGES = [
             "That's okay.",
@@ -1114,11 +1114,23 @@
             'planning dinner badly'
         ];
         const COWORKER_PERSONAS = [
-            { persona: 'tiny-step realist', quirk: 'uses_2' },
-            { persona: 'laughs easily', quirk: 'lol' },
-            { persona: 'gentle encourager', quirk: 'emoji' },
-            { persona: 'messy starter', quirk: 'typos' },
-            { persona: 'quiet checklist person', quirk: 'checklist' }
+            { persona: 'direct tiny-step mate', quirk: 'uses_2' },
+            { persona: 'dry humour starter', quirk: 'lol' },
+            { persona: 'calm practical encourager', quirk: 'emoji' },
+            { persona: 'messy but moving', quirk: 'typos' },
+            { persona: 'quiet checklist person', quirk: 'checklist' },
+            { persona: 'time-blind sprinter', quirk: 'typos' },
+            { persona: 'warm no-nonsense buddy', quirk: 'emoji' }
+        ];
+        const COWORKER_ADHD_TRAITS = [
+            'loses the thread when there are too many steps',
+            'gets time-blind unless a timer is visible',
+            'opens too many tabs when the task feels vague',
+            'gets restless and needs quick movement resets',
+            'procrastinates until the task has a tiny doorway',
+            'feels emotions spike when a task has pressure',
+            'forgets the next action unless it is written down',
+            'gets stuck choosing the best place to start'
         ];
 
         // ── Screens ──
@@ -2350,10 +2362,10 @@
             document.getElementById('coworkingChatWindow').classList.remove('hidden');
             document.getElementById('chatReopenBtn').classList.add('hidden');
             document.getElementById('coworkingRoomLine').textContent =
-                `${coworkingCoworkers.length} simulated coworkers joined.`;
+                `${coworkingCoworkers.length} coworkers joined.`;
 
             renderCoworkerHeader();
-            addCoworkingMessage('Room', 'Simulated coworkers are settling in. Pick one tiny move and begin.', 'system');
+            addCoworkingMessage('Room', 'Coworkers are settling in. Pick one tiny move and begin.', 'system');
             updateCoworkingDisplay();
             updateCoworkingChatLock();
             schedulePeriodicCoworkingMessage();
@@ -2403,12 +2415,12 @@
         function updateCoworkingDisplay() {
             document.getElementById('coworkingMeta').textContent =
                 coworkingActive
-                    ? `${coworkingSelectedMinutes} min simulated coworking session`
+                    ? `${coworkingSelectedMinutes} min group session`
                     : 'Choose 10, 30, or 60 minutes';
             document.getElementById('chatSubtitle').textContent =
                 coworkingCoworkers.length
                     ? coworkingCoworkers.map(c => c.name).slice(0, 4).join(', ')
-                    : 'Simulated coworking companions';
+                    : 'Coworking room';
         }
 
         function clearCoworkingTimers() {
@@ -2425,12 +2437,19 @@
         function generateCoworkers() {
             const names = shuffled(COWORKER_NAMES);
             const tasks = shuffled(COWORKER_TASKS);
-            return COWORKER_PERSONAS.map((template, index) => ({
-                name: names[index],
-                task: tasks[index],
-                persona: template.persona,
-                quirk: template.quirk
-            }));
+            const personas = shuffled(COWORKER_PERSONAS);
+            const traits = shuffled(COWORKER_ADHD_TRAITS);
+            const count = randomInt(3, 5);
+            return Array.from({ length: count }, (_, index) => {
+                const template = personas[index % personas.length];
+                return {
+                    name: names[index],
+                    task: tasks[index],
+                    persona: template.persona,
+                    quirk: template.quirk,
+                    adhd_trait: traits[index % traits.length]
+                };
+            });
         }
 
         function renderCoworkerHeader() {
@@ -2616,32 +2635,48 @@
         }
 
         function localCoworkingPeriodic(coworker, index) {
+            const trait = coworker.adhd_trait || 'gets stuck when the next step is fuzzy';
             const variants = [
-                `starting ${coworker.task}. tiny bit first.`,
-                `checking in, i opened ${coworker.task}. staying with it.`,
-                `still here. doing ${coworker.task} for a few mins.`,
-                `tiny progress on ${coworker.task}. keeping it low drama.`
+                "hi, i'm here. opening the thing before i can overthink it.",
+                `my brain wanted five tabs. picking one for ${coworker.task}.`,
+                `tiny reset: one breath, one move. ${coworker.task} can be messy.`,
+                'i drifted for a sec. back now. next visible action.',
+                `${trait}, so i'm keeping the step annoyingly small.`,
+                'quiet push time. we can chat after one real move.'
             ];
             return variants[(coworkingBotMessageCount + index) % variants.length];
         }
 
         function localCoworkingReply(userMessage, coworker, index) {
             const lower = userMessage.toLowerCase();
+            const trait = coworker.adhd_trait || 'gets stuck when the next step is fuzzy';
+            if (/are you real|is this real|real person|real people/.test(lower)) {
+                return [
+                    "This is a virtual coworking room. The work you're doing is real.",
+                    'Real or not, your next tiny move still gets the win.'
+                ][index % 2];
+            }
+            if (/chatting|distracted|scrolling|procrastinating/.test(lower)) {
+                return [
+                    "i get it. i'm closing one distraction and doing the next visible thing.",
+                    'same danger zone. one work move now, then we can come back.'
+                ][index % 2];
+            }
             if (/stuck|hard|overwhelmed|can't|cant|avoid/.test(lower)) {
                 return [
-                    'same kind of feeling here. make it almost silly-small.',
-                    'could you open it and only look for 10 sec?'
+                    'same. when i freeze, i make it silly-small: open, touch, or write one line.',
+                    `${trait} here. pick the first action you can finish in 2 mins.`
                 ][index % 2];
             }
             if (userMessage.includes('?')) {
                 return [
-                    "i'd pick the easiest doorway, not the perfect one.",
-                    'maybe make a rough version first and fix later.'
+                    "i'd choose the first visible action, not the cleverest one. what is already open?",
+                    'my vote: start messy for 2 mins, then decide if it needs fixing.'
                 ][index % 2];
             }
             return [
-                "heard. i'm staying with my tiny step too.",
-                'nice, keep it small. one messy bit counts.'
+                "heard. i'm doing one messy bit too. keep the next move tiny.",
+                'nice. one small done thing beats a perfect plan sitting there.'
             ][index % 2];
         }
 

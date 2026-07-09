@@ -246,7 +246,7 @@ class TestUnclumpSessionPlan:
         assert result.confidence == 0.8
         assert result.micro_steps[0].estimated_seconds == 15
         assert result.micro_steps[0].support_note == "This makes the task visible."
-        assert result.block_label == "Let's break it down - we can handle this in one go if we break it into smaller chunks."
+        assert result.block_label == "Let's break it down"
 
     def test_parse_session_response_accepts_large_task_route(self):
         raw = json.dumps({
@@ -272,7 +272,7 @@ class TestUnclumpSessionPlan:
         result = _parse_session_response("start a company", raw)
         assert result.task_size == "large"
         assert result.planning_mode == "multi_session_project"
-        assert result.block_label == "Overwhelming - this may feel too large to do in one go, let's do it over multiple sessions together."
+        assert result.block_label == "Overwhelming - Let's do this over multiple sessions."
         assert result.stopping_point == "Stop when the next action is named."
 
     def test_fallback_detects_low_energy(self):
@@ -397,11 +397,31 @@ class TestUnclumpSessionPlan:
             task="reply to an email",
             mode="reply",
             coworkers=[
-                {"name": "Maya", "task": "sorting receipts", "quirk": "uses_2"},
-                {"name": "Sam", "task": "opening a draft", "quirk": "lol"},
+                {
+                    "name": "Maya",
+                    "task": "sorting receipts",
+                    "quirk": "uses_2",
+                    "adhd_trait": "gets time-blind unless a timer is visible",
+                },
+                {
+                    "name": "Sam",
+                    "task": "opening a draft",
+                    "quirk": "lol",
+                    "adhd_trait": "opens too many tabs when the task feels vague",
+                },
             ],
             user_message="I'm stuck, what should I do?",
         )
         assert 1 <= len(result["messages"]) <= 2
         assert all(len(message["text"].split()) <= 30 for message in result["messages"])
         assert any(message["sender"] in {"Maya", "Sam"} for message in result["messages"])
+        assert not any("checking in" in message["text"].lower() for message in result["messages"])
+
+    def test_coworking_fallback_answers_real_question_transparently(self):
+        result = create_coworking_messages_fallback(
+            task="write report",
+            mode="reply",
+            coworkers=[{"name": "Maya", "task": "sorting receipts", "quirk": "emoji"}],
+            user_message="are you real people?",
+        )
+        assert result["messages"][0]["text"].startswith("This is a virtual coworking room")

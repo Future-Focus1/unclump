@@ -142,6 +142,7 @@ class CoworkerProfile(BaseModel):
     task: str = Field(..., min_length=1, max_length=120)
     persona: str | None = Field(default=None, max_length=80)
     quirk: str | None = Field(default=None, max_length=40)
+    adhd_trait: str | None = Field(default=None, max_length=140)
 
 
 class CoworkingMessage(BaseModel):
@@ -436,7 +437,7 @@ async def support(request: SupportRequest):
 
 @app.post("/api/coworking/chat", response_model=CoworkingChatResponse)
 async def coworking_chat(request: CoworkingChatRequest):
-    """Return simulated coworking room messages."""
+    """Return virtual coworking room messages."""
     mode = request.mode.strip().lower()
     if mode not in {"periodic", "reply"}:
         raise HTTPException(status_code=422, detail="Invalid coworking chat mode")
